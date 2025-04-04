@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,264 +14,334 @@ import {
 } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trash, Users, Check } from "lucide-react";
 
-interface RSVP {
-  id: string;
-  attending: boolean;
-  guest_count: number;
-  party_choice: "bachelor" | "bachelorette" | "none";
-  gender: "male" | "female";
-  dietary_restrictions: string | null;
-  song_request: string | null;
-}
+// Define types in separate file and import them
+import { RSVP, Gift, CrewMember, Profile } from "@/types/admin";
 
-interface Gift {
-  id: number;
-  name: string;
-  available: boolean;
-  claimed_by: string | null;
-  image_url: string | null;
-  estimated_price: number | null;
-}
-
-interface Profile {
-  id: string;
-  full_name: string | null;
-}
+// Extract components to separate files
+import StatsCard from "@/components/admin/StatsCard";
+import RSVPTable from "@/components/admin/RSVPTable";
+import GiftForm from "@/components/admin/GiftForm";
+import CrewForm from "@/components/admin/CrewForm";
+import EditRSVPForm from "@/components/admin/EditRSVPForm";
 
 export default function AdminDashboard() {
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [gifts, setGifts] = useState<Gift[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, string>>({}); // Map of user_id -> full_name
-  const [newGiftName, setNewGiftName] = useState("");
-  const [newGiftImage, setNewGiftImage] = useState<File | null>(null);
-  const [newGiftPrice, setNewGiftPrice] = useState("");
+  const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [editRSVP, setEditRSVP] = useState<RSVP | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        console.error("No session, redirecting to /auth/signin");
-        router.replace("/auth/signin");
-        return;
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profileError || profile?.role !== "admin") {
-        console.error("Not an admin, redirecting to /rsvp");
-        router.replace("/rsvp");
-        return;
-      }
-
-      fetchData();
-    };
     checkAuth();
   }, [router]);
 
-  const fetchData = async () => {
-    // Fetch RSVPs
-    const { data: rsvpData, error: rsvpError } = await supabase
-      .from("rsvp")
-      .select("*");
-    if (rsvpError) {
-      toast.error(rsvpError.message);
-    } else {
-      setRsvps(rsvpData || []);
+  const checkAuth = async () => {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      router.replace("/auth/signin");
+      return;
     }
 
-    // Fetch Gifts
-    const { data: giftData, error: giftError } = await supabase
-      .from("gifts")
-      .select("*");
-    if (giftError) {
-      toast.error(giftError.message);
-    } else {
-      setGifts(giftData || []);
-    }
-
-    // Fetch Profiles
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id, full_name");
-    if (profileError) {
-      toast.error(profileError.message);
-    } else {
-      const profileMap = (profileData || []).reduce((acc, profile: Profile) => {
-        acc[profile.id] = profile.full_name || "Unknown";
-        return acc;
-      }, {} as Record<string, string>);
-      setProfiles(profileMap);
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
+
+    if (profileError || profile?.role !== "admin") {
+      router.replace("/rsvp");
+      return;
     }
+
+    fetchData();
   };
 
-  const handleAddGift = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newGiftName) {
-      toast.error("Please enter a gift name");
-      return;
-    }
-    if (
-      !newGiftPrice ||
-      isNaN(Number(newGiftPrice)) ||
-      Number(newGiftPrice) < 0
-    ) {
-      toast.error("Please enter a valid estimated price");
-      return;
-    }
+  const fetchData = async () => {
+    // Fetch all data in parallel
+    const [rsvpResult, giftResult, crewResult, profileResult] =
+      await Promise.all([
+        supabase.from("rsvp").select("*"),
+        supabase
+          .from("gifts")
+          .select("id, name, available, claimed_by, image_url"),
+        supabase
+          .from("bridal_crew")
+          .select("id, name, role, headshot_url, quote"),
+        supabase.from("profiles").select("id, full_name"),
+      ]);
 
-    const formData = new FormData();
-    formData.append("name", newGiftName);
-    formData.append("estimated_price", newGiftPrice);
-    if (newGiftImage) {
-      formData.append("image", newGiftImage);
-    }
+    if (rsvpResult.error) toast.error(rsvpResult.error.message);
+    else setRsvps(rsvpResult.data || []);
 
-    const response = await fetch("/api/add-gift", {
-      method: "POST",
-      body: formData,
-    });
+    if (giftResult.error) toast.error(giftResult.error.message);
+    else setGifts(giftResult.data || []);
 
-    const result = await response.json();
-    if (!response.ok) {
-      toast.error(result.error);
-    } else {
-      toast.success(result.message);
-      setNewGiftName("");
-      setNewGiftImage(null);
-      setNewGiftPrice("");
-      fetchData();
+    if (crewResult.error) toast.error(crewResult.error.message);
+    else setCrew(crewResult.data || []);
+
+    if (profileResult.error) toast.error(profileResult.error.message);
+    else {
+      const profileMap = (profileResult.data || []).reduce(
+        (acc, profile: Profile) => {
+          acc[profile.id] = profile.full_name || "Unknown";
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+      setProfiles(profileMap);
     }
   };
 
   const handleDeleteGift = async (giftId: number) => {
     const { error } = await supabase.from("gifts").delete().eq("id", giftId);
-    if (error) {
-      toast.error(error.message);
-    } else {
+    if (error) toast.error(error.message);
+    else {
       toast.success("Gift deleted successfully!");
       fetchData();
     }
   };
 
-  return (
-    <div className="container mx-auto p-4 space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Admin Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <h2 className="text-xl mb-4">RSVP Responses</h2>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Attending</TableHead>
-                <TableHead>Guests</TableHead>
-                <TableHead>Party Choice</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead>Dietary Restrictions</TableHead>
-                <TableHead>Song Request</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rsvps.map((rsvp) => (
-                <TableRow key={rsvp.id}>
-                  <TableCell>{profiles[rsvp.id] || rsvp.id}</TableCell>
-                  <TableCell>{rsvp.attending ? "Yes" : "No"}</TableCell>
-                  <TableCell>{rsvp.guest_count}</TableCell>
-                  <TableCell>{rsvp.party_choice}</TableCell>
-                  <TableCell>{rsvp.gender}</TableCell>
-                  <TableCell>{rsvp.dietary_restrictions || "None"}</TableCell>
-                  <TableCell>{rsvp.song_request || "None"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+  const handleDeleteCrewMember = async (crewId: number) => {
+    const { error } = await supabase
+      .from("bridal_crew")
+      .delete()
+      .eq("id", crewId);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Crew member deleted successfully!");
+      fetchData();
+    }
+  };
 
-          <h2 className="text-xl mt-6 mb-4">Gift Registry</h2>
-          <form onSubmit={handleAddGift} className="space-y-4 mb-4">
-            <Input
-              placeholder="Gift name"
-              value={newGiftName}
-              onChange={(e) => setNewGiftName(e.target.value)}
-            />
-            <Input
-              type="number"
-              placeholder="Estimated price (R)"
-              value={newGiftPrice}
-              onChange={(e) => setNewGiftPrice(e.target.value)}
-              min="0"
-              step="0.01"
-            />
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setNewGiftImage(e.target.files?.[0] || null)}
-            />
-            <Button type="submit">Add Gift</Button>
-          </form>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Gift Name</TableHead>
-                <TableHead>Available</TableHead>
-                <TableHead>Claimed By</TableHead>
-                <TableHead>Image</TableHead>
-                <TableHead>Price (R)</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {gifts.map((gift) => (
-                <TableRow key={gift.id}>
-                  <TableCell>{gift.name}</TableCell>
-                  <TableCell>{gift.available ? "Yes" : "No"}</TableCell>
-                  <TableCell>
-                    {gift.claimed_by
-                      ? profiles[gift.claimed_by] || gift.claimed_by
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    {gift.image_url ? (
-                      <img
-                        src={gift.image_url}
-                        alt={gift.name}
-                        className="w-12 h-12 object-cover"
-                      />
-                    ) : (
-                      "No image"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {gift.estimated_price
-                      ? `R${gift.estimated_price.toFixed(2)}`
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteGift(gift.id)}
-                      disabled={!gift.available}
-                    >
-                      Delete
-                    </Button>
-                  </TableCell>
-                </TableRow>
+  const handleDeleteRSVP = async (rsvpId: string) => {
+    const { error } = await supabase.from("rsvp").delete().eq("id", rsvpId);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("RSVP deleted successfully!");
+      fetchData();
+    }
+  };
+
+  // Calculate stats once
+  const totalRSVPs = rsvps.length;
+  const attendingCount = rsvps.filter((rsvp) => rsvp.attending).length;
+  const totalGuests = rsvps.reduce((sum, rsvp) => sum + rsvp.guest_count, 0);
+  const stats = [
+    {
+      title: "Total RSVPs",
+      value: totalRSVPs,
+      label: "Responses received",
+      icon: Users,
+    },
+    {
+      title: "Attending",
+      value: attendingCount,
+      label: `${
+        Math.round((attendingCount / totalRSVPs) * 100) || 0
+      }% of total`,
+      icon: Check,
+    },
+    {
+      title: "Total Guests",
+      value: totalGuests,
+      label: "Across all RSVPs",
+      icon: Users,
+    },
+  ];
+
+  return (
+    <div className="container mx-auto p-4 space-y-8 ">
+      <div className="p-6 border rounded-2xl space-y-6">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <Tabs defaultValue="rsvps" className="space-y-6 ">
+          <TabsList>
+            <TabsTrigger value="rsvps" className="hover:cursor-pointer">
+              RSVPs
+            </TabsTrigger>
+            <TabsTrigger value="gifts" className="hover:cursor-pointer">
+              Gift Registry
+            </TabsTrigger>
+            <TabsTrigger value="crew" className="hover:cursor-pointer">
+              Bridal Crew
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="rsvps">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {stats.map((stat, i) => (
+                <StatsCard key={i} {...stat} />
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </div>
+            <div className="border rounded-xl p-4">
+              {/* Pass the Dialog into RSVPTable or handle it here */}
+              <Dialog
+                open={!!editRSVP}
+                onOpenChange={(open) => !open && setEditRSVP(null)}
+              >
+                <RSVPTable
+                  rsvps={rsvps}
+                  profiles={profiles}
+                  onEdit={(rsvp) => setEditRSVP(rsvp)} // This sets the RSVP to edit and opens the dialog
+                  onDelete={handleDeleteRSVP}
+                />
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit RSVP</DialogTitle>
+                  </DialogHeader>
+                  {editRSVP && (
+                    <EditRSVPForm
+                      rsvp={editRSVP}
+                      onSubmit={async (updatedRSVP) => {
+                        const { error } = await supabase
+                          .from("rsvp")
+                          .update(updatedRSVP)
+                          .eq("id", updatedRSVP.id);
+
+                        if (error) toast.error(error.message);
+                        else {
+                          toast.success("RSVP updated successfully!");
+                          setEditRSVP(null); // Close the dialog
+                          fetchData();
+                        }
+                      }}
+                    />
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="gifts" className="space-y-6">
+            <Card>
+              <div className="tracking-tight text-2xl font-medium pl-7">
+                Add Gift
+              </div>
+              <CardContent className="pt-2">
+                <GiftForm onSubmit={fetchData} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Gift Name</TableHead>
+                      <TableHead>Available</TableHead>
+                      <TableHead>Claimed By</TableHead>
+                      <TableHead>Image</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {gifts.map((gift) => (
+                      <TableRow key={gift.id}>
+                        <TableCell>{gift.name}</TableCell>
+                        <TableCell>{gift.available ? "Yes" : "No"}</TableCell>
+                        <TableCell>
+                          {gift.claimed_by
+                            ? profiles[gift.claimed_by] || gift.claimed_by
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {gift.image_url ? (
+                            <img
+                              src={gift.image_url}
+                              alt={gift.name}
+                              className="w-12 h-12 object-cover"
+                            />
+                          ) : (
+                            "No image"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteGift(gift.id)}
+                            disabled={!gift.available}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="crew" className="space-y-6">
+            <Card>
+              <div className="tracking-tight text-2xl font-medium pl-7">
+                Add Crew Member
+              </div>
+              <CardContent className="pt-2">
+                <CrewForm onSubmit={fetchData} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Headshot</TableHead>
+                      <TableHead>Quote</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {crew.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell>{member.name}</TableCell>
+                        <TableCell>{member.role}</TableCell>
+                        <TableCell>
+                          {member.headshot_url ? (
+                            <img
+                              src={member.headshot_url}
+                              alt={member.name}
+                              className="w-12 h-12 object-cover"
+                            />
+                          ) : (
+                            "No image"
+                          )}
+                        </TableCell>
+                        <TableCell>{member.quote || "N/A"}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteCrewMember(member.id)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

@@ -2,68 +2,88 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import StepIndicator from "@/components/rsvp/StepIndicator";
+import PersonalInfoStep from "@/components/rsvp/PersonalInfoStep";
+import AttendanceStep from "@/components/rsvp/AttendanceStep";
+import PartySelectionStep from "@/components/rsvp/PartySelectionStep";
+import AdditionalInfoStep from "@/components/rsvp/AdditionalInfoStep";
+import SuccessMessage from "@/components/rsvp/SuccessMessage";
+import { FormData, Gift, RSVPRecord } from "@/lib/types";
+import Loader from "@/components/Loader";
 
 export default function RSVP() {
-  const [attending, setAttending] = useState<boolean | null>(null);
-  const [guestCount, setGuestCount] = useState<number>(0);
-  const [gifts, setGifts] = useState<
-    { id: number; name: string; available: boolean }[]
-  >([]);
-  const [selectedGift, setSelectedGift] = useState<number | null>(null);
-  const [gender, setGender] = useState<"male" | "female" | null>(null);
-  const [partyChoice, setPartyChoice] = useState<
-    "bachelor" | "bachelorette" | "none"
-  >("none");
-  const [dietaryRestrictions, setDietaryRestrictions] = useState("");
-  const [songRequest, setSongRequest] = useState("");
+  const [step, setStep] = useState<number>(1);
+  const [formData, setFormData] = useState<FormData>({
+    fullName: "",
+    email: "",
+    phone: "",
+    attending: null,
+    guestCount: 0,
+    gender: null,
+    partyChoice: "none",
+    selectedGift: null,
+    dietaryRestrictions: "",
+    songRequest: "",
+  });
+  const [gifts, setGifts] = useState<Gift[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState<boolean | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-        if (sessionError || !session) {
-          console.error("No active session:", sessionError);
-          router.replace("/auth/signin");
-          return;
-        }
-
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, role")
-          .eq("id", session.user.id)
-          .single();
-
-        if (profileError || !profileData) {
-          console.error("No profile found:", profileError);
-          router.replace("/auth/signin");
-          return;
-        }
-
-        fetchGifts();
-      } catch (catchError) {
-        console.error("Unexpected error during auth check:", catchError);
+    const checkAuthAndLoad = async () => {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) {
         router.replace("/auth/signin");
+        return;
       }
-    };
 
-    checkAuth();
+      // Check if user has already submitted an RSVP
+      const { data: existingRSVP, error: rsvpError } = await supabase
+        .from("rsvp")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (rsvpError && rsvpError.code !== "PGRST116") {
+        // PGRST116 means no rows found
+        toast.error("Error checking RSVP status");
+        return;
+      }
+
+      if (existingRSVP) {
+        setHasSubmitted(true);
+        return;
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", session.user.id)
+        .single();
+
+      if (profileError) {
+        toast.error("Error loading profile");
+        router.replace("/auth/signin");
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        fullName: profileData?.full_name || "",
+        email: session.user.email || "",
+      }));
+
+      fetchGifts();
+      setHasSubmitted(false);
+    };
+    checkAuthAndLoad();
   }, [router]);
 
   const fetchGifts = async () => {
@@ -72,15 +92,15 @@ export default function RSVP() {
       .select("id, name, available")
       .eq("available", true);
     if (error) {
-      console.error("Error fetching gifts:", error);
+      toast.error("Error fetching gifts");
     } else {
       setGifts(data || []);
-      console.log("Gifts fetched:", data);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     const {
       data: { session },
@@ -89,178 +109,125 @@ export default function RSVP() {
     if (sessionError || !session) {
       toast.error("You must be logged in to RSVP");
       router.replace("/auth/signin");
+      setIsSubmitting(false);
       return;
     }
 
-    if (attending === null || !gender) {
+    if (!formData.fullName || formData.attending === null || !formData.gender) {
       toast.error("Please complete all required fields");
+      setIsSubmitting(false);
       return;
     }
 
-    if (selectedGift) {
+    if (formData.selectedGift) {
       const { data: giftCheck, error: giftCheckError } = await supabase
         .from("gifts")
         .select("available")
-        .eq("id", selectedGift)
+        .eq("id", formData.selectedGift)
         .single();
 
-      if (giftCheckError || !giftCheck) {
-        toast.error("Error verifying gift availability");
-        return;
-      }
-
-      if (!giftCheck.available) {
-        toast.error("This gift has already been reserved by someone else");
+      if (giftCheckError || !giftCheck?.available) {
+        toast.error("This gift is no longer available");
         fetchGifts();
+        setIsSubmitting(false);
         return;
       }
     }
 
     const { error: rsvpError } = await supabase.from("rsvp").upsert({
       id: session.user.id,
-      attending,
-      guest_count: attending ? guestCount : 0,
-      party_choice: attending && partyChoice !== "none" ? partyChoice : "none",
-      gender,
-      dietary_restrictions: dietaryRestrictions || null,
-      song_request: songRequest || null,
+      attending: formData.attending,
+      guest_count: formData.attending ? formData.guestCount : 0,
+      party_choice:
+        formData.attending && formData.partyChoice !== "none"
+          ? formData.partyChoice
+          : "none",
+      gender: formData.gender,
+      dietary_restrictions: formData.dietaryRestrictions || null,
+      song_request: formData.songRequest || null,
     });
 
     if (rsvpError) {
       toast.error(rsvpError.message);
+      setIsSubmitting(false);
       return;
     }
 
-    if (selectedGift) {
+    if (formData.selectedGift) {
       const { error: giftError } = await supabase
         .from("gifts")
         .update({ available: false, claimed_by: session.user.id })
-        .eq("id", selectedGift)
+        .eq("id", formData.selectedGift)
         .eq("available", true);
 
       if (giftError) {
         toast.error("Failed to claim gift: " + giftError.message);
+        setIsSubmitting(false);
         return;
       }
       fetchGifts();
-      setSelectedGift(null);
     }
 
-    toast.success("RSVP submitted successfully!");
-    if (partyChoice !== "none") {
-      const whatsappLink =
-        partyChoice === "bachelor"
-          ? "https://chat.whatsapp.com/bachelor-group-link"
-          : "https://chat.whatsapp.com/bachelorette-group-link";
-      window.open(whatsappLink, "_blank");
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ full_name: formData.fullName })
+      .eq("id", session.user.id);
+
+    if (profileError) {
+      toast.error("Failed to update profile: " + profileError.message);
     }
+
+    setIsSubmitting(false);
+    setHasSubmitted(true);
+    toast.success("RSVP submitted successfully!");
   };
+
+  if (hasSubmitted === null) {
+    return <Loader />;
+  }
+
+  if (hasSubmitted) {
+    return <SuccessMessage />;
+  }
 
   return (
     <div className="container mx-auto p-4">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>RSVP</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <p>Are you attending?</p>
-              <div className="flex gap-4">
-                <Button
-                  type="button"
-                  variant={attending === true ? "default" : "outline"}
-                  onClick={() => setAttending(true)}
-                >
-                  Yes
-                </Button>
-                <Button
-                  type="button"
-                  variant={attending === false ? "default" : "outline"}
-                  onClick={() => setAttending(false)}
-                >
-                  No
-                </Button>
-              </div>
-            </div>
-
-            {attending && (
-              <>
-                <Input
-                  type="number"
-                  placeholder="Number of additional guests"
-                  value={guestCount}
-                  onChange={(e) =>
-                    setGuestCount(Math.max(0, parseInt(e.target.value) || 0))
-                  }
-                  min="0"
-                />
-                <Select
-                  onValueChange={(value) =>
-                    setSelectedGift(parseInt(value) || null)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a gift (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gifts.map((gift) => (
-                      <SelectItem key={gift.id} value={gift.id.toString()}>
-                        {gift.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  onValueChange={(value: "male" | "female") => setGender(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Your gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-                {gender && (
-                  <Select
-                    onValueChange={(
-                      value: "bachelor" | "bachelorette" | "none"
-                    ) => setPartyChoice(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Join a party?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No thanks</SelectItem>
-                      {gender === "male" && (
-                        <SelectItem value="bachelor">Bachelor Party</SelectItem>
-                      )}
-                      {gender === "female" && (
-                        <SelectItem value="bachelorette">
-                          Bachelorette Party
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
-                <Textarea
-                  placeholder="Any dietary restrictions? (e.g., vegetarian, gluten-free)"
-                  value={dietaryRestrictions}
-                  onChange={(e) => setDietaryRestrictions(e.target.value)}
-                />
-                <Input
-                  placeholder="Song request (optional)"
-                  value={songRequest}
-                  onChange={(e) => setSongRequest(e.target.value)}
-                />
-              </>
-            )}
-            <Button type="submit" className="w-full">
-              Submit RSVP
-            </Button>
-          </form>
-        </CardContent>
+      <Card className="max-w-[40rem] mx-auto">
+        <StepIndicator step={step} />
+        <form onSubmit={handleSubmit}>
+          {step === 1 && (
+            <PersonalInfoStep
+              formData={formData}
+              setFormData={setFormData}
+              nextStep={() => setStep(2)}
+            />
+          )}
+          {step === 2 && (
+            <AttendanceStep
+              formData={formData}
+              setFormData={setFormData}
+              gifts={gifts}
+              prevStep={() => setStep(1)}
+              nextStep={() => setStep(3)}
+            />
+          )}
+          {step === 3 && (
+            <PartySelectionStep
+              formData={formData}
+              setFormData={setFormData}
+              prevStep={() => setStep(2)}
+              nextStep={() => setStep(4)}
+            />
+          )}
+          {step === 4 && (
+            <AdditionalInfoStep
+              formData={formData}
+              setFormData={setFormData}
+              prevStep={() => setStep(3)}
+              isSubmitting={isSubmitting}
+            />
+          )}
+        </form>
       </Card>
     </div>
   );

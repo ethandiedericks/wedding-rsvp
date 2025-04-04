@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Loader from "@/components/Loader";
 
 interface Gift {
   id: number;
@@ -39,7 +40,7 @@ export default function GiftRegistry() {
   }, []);
 
   if (loading) {
-    return <div className="container mx-auto p-4">Loading gifts...</div>;
+    return <Loader />;;
   }
 
   return (
@@ -49,13 +50,9 @@ export default function GiftRegistry() {
         {gifts.map((gift) => (
           <Card key={gift.id} className="flex flex-col">
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex ">
                 <CardTitle className="text-lg">{gift.name}</CardTitle>
-                <span className="text-sm text-muted-foreground">
-                  {gift.estimated_price
-                    ? `R${gift.estimated_price.toFixed(2)}`
-                    : "N/A"}
-                </span>
+        
               </div>
             </CardHeader>
             <CardContent className="flex-grow">

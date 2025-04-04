@@ -6,14 +6,11 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const image = formData.get("image") as File | null;
-    const estimatedPrice = formData.get("estimated_price") as string;
 
     if (!name) {
       return NextResponse.json({ error: "Gift name is required" }, { status: 400 });
     }
-    if (!estimatedPrice || isNaN(Number(estimatedPrice)) || Number(estimatedPrice) < 0) {
-      return NextResponse.json({ error: "Valid estimated price is required" }, { status: 400 });
-    }
+
 
     let imageUrl: string | null = null;
     if (image) {
@@ -41,7 +38,6 @@ export async function POST(request: NextRequest) {
         name,
         available: true,
         image_url: imageUrl,
-        estimated_price: Number(estimatedPrice),
       });
 
     if (insertError) {
