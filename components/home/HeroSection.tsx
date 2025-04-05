@@ -27,28 +27,20 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={{
-        backgroundImage:
-          'url("https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?q=80&w=2400&auto=format&fit=crop")',
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background"
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/10 backdrop-blur-xs"></div>
-
       <div
         className={cn(
-          "container relative z-10 mx-auto px-4 text-center text-white transition-all duration-1000 transform",
+          "container relative z-10 mx-auto px-4 text-center transition-all duration-1000 transform",
           loaded ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
         )}
       >
         <div className="max-w-3xl mx-auto">
           <div className="mb-1 inline-block">
-            <div className="text-sm font-medium tracking-wider uppercase mb-2 animate-fade-in opacity-90">
-              We're getting married
+            <div className="text-sm font-medium tracking-[0.2em] uppercase mb-4 text-primary animate-fade-in">
+              WE'RE GETTING MARRIED
             </div>
-            <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-semibold mb-6 animate-slide-in">
+            <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-normal mb-8 animate-slide-in text-foreground">
               Emma & James
             </h1>
           </div>
@@ -69,12 +61,12 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
             style={{ animationDelay: "600ms" }}
           >
             <Link href="/rsvp">
-              <span className="bg-white/20 hover:bg-white/30 backdrop-filter backdrop-blur-sm border border-white/20 text-white px-8 py-3 rounded-full inline-block transition-all duration-300 mx-2 my-2">
-                RSVP Now
+              <span className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-none inline-block transition-all duration-300 mx-2 my-2 tracking-wider">
+                RSVP NOW
               </span>
             </Link>
             <Link href="/details">
-              <span className="bg-white text-black/90 hover:text-black px-8 py-3 rounded-full inline-block transition-all duration-300 mx-2 my-2">
+              <span className="border border-primary hover:bg-primary/5 text-primary px-8 py-3 rounded-none inline-block transition-all duration-300 mx-2 my-2 tracking-wider">
                 Event Details
               </span>
             </Link>
