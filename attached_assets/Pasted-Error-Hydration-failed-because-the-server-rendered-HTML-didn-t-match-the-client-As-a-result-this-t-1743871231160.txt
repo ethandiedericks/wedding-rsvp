@@ -1,0 +1,57 @@
+Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <RedirectBoundary>
+      <RedirectErrorBoundary router={{...}}>
+        <InnerLayoutRouter url="/" tree={[...]} cacheNode={{lazyData:null, ...}} segmentPath={[...]}>
+          <Home>
+            <div className="min-h-scre...">
+              <HeroSection weddingDetails={{date:"June...", ...}}>
+                <section id="home" className="relative m..." style={{...}}>
+                  <div>
+                  <div className="container ...">
+                    <div className="max-w-3xl ...">
+                      <div>
+                      <p>
+                      <div className="animate-fa..." style={{...}}>
+                        <CountdownTimer targetDate="2025-06-01...">
+                          <div className="flex justi...">
+                            <div className="flex flex-..." style={{...}}>
+                              <div className="bg-white/1...">
+                                <span className="text-white text-xl md:text-2xl font-semibold">
++                                 56
+-                                 57
+                              ...
+                            ...
+                      ...
+                  ...
+              ...
+          ...
+
+    at throwOnHydrationMismatch (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:9266:56)
+    at prepareToHydrateHostInstance (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:9321:23)
+    at completeWork (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:9487:60)
+    at runWithFiberInDEV (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:3501:74)
+    at completeUnitOfWork (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10233:23)
+    at performUnitOfWork (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10170:28)
+    at workLoopConcurrentByScheduler (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10164:58)
+    at renderRootConcurrent (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10146:71)
+    at performWorkOnRoot (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:9784:176)
+    at performWorkOnRootViaSchedulerTask (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:10796:9)
+    at MessagePort.performWorkUntilDeadline (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1952:64)
+    at span (<anonymous>)
+    at https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/components_d9ed415d._.js:80:237
+    at Array.map (<anonymous>)
+    at CountdownTimer (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/components_d9ed415d._.js:72:29)
+    at HeroSection (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/components_d9ed415d._.js:211:241)
+    at Home (rsc://React/Server/file:///home/runner/workspace/.next/server/chunks/ssr/_7bea6813._.js?32:858:264)
