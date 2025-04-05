@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Heart, LogIn, LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
@@ -76,13 +76,13 @@ export default function Navbar() {
           >
             Home
           </Link>
-            <Link
-              href="/rsvp"
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              RSVP
-            </Link>
-      
+          <Link
+            href="/rsvp"
+            className="text-sm font-medium transition-colors hover:text-primary"
+          >
+            RSVP
+          </Link>
+
           <Link
             href="/gifts"
             className="text-sm font-medium transition-colors hover:text-primary"
@@ -129,6 +129,9 @@ export default function Navbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle>Menu</SheetTitle>
+            </SheetHeader>
             <div className="flex flex-col space-y-4 mt-8">
               <Link
                 href="/"
