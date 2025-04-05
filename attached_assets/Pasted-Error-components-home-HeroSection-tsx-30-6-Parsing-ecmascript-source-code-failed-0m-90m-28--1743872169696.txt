@@ -1,0 +1,23 @@
+Error: ./components/home/HeroSection.tsx:30:6
+Parsing ecmascript source code failed
+[0m [90m 28 |[39m[0m
+[0m [90m 29 |[39m   [36mreturn[39m ([0m
+[0m[31m[1m>[22m[39m[90m 30 |[39m     [33m<[39m[33msection[39m[0m
+[0m [90m    |[39m      [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+[0m [90m 31 |[39m       id[33m=[39m[32m"home"[39m[0m
+[0m [90m 32 |[39m       className[33m=[39m[32m"relative min-h-screen flex items-center justify-center overflow-hidden bg-[#FDFBF7]"[39m[0m
+[0m [90m 33 |[39m     [33m>[39m[0m
+
+Unexpected token `section`. Expected jsx identifier
+    at BuildError (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/%5Broot%20of%20the%20server%5D__3a40d6d2._.js:17247:41)
+    at react-stack-bottom-frame (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:12388:24)
+    at renderWithHooks (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:3402:24)
+    at updateFunctionComponent (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:4726:21)
+    at beginWork (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:5358:24)
+    at runWithFiberInDEV (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:631:20)
+    at performUnitOfWork (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:7947:97)
+    at workLoopSync (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:7840:40)
+    at renderRootSync (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:7823:13)
+    at performWorkOnRoot (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:7558:211)
+    at performWorkOnRootViaSchedulerTask (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_react-dom_82bb97c6._.js:8386:9)
+    at MessagePort.performWorkUntilDeadline (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_beb00741._.js:1462:64)
