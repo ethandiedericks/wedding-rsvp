@@ -15,9 +15,9 @@ type WeddingDetails = {
   dresscode: string;
 };
 
-type HeroSectionProps = {
+interface HeroSectionProps {
   weddingDetails: WeddingDetails;
-};
+}
 
 export default function HeroSection({ weddingDetails }: HeroSectionProps) {
   const [loaded, setLoaded] = useState(false);
@@ -47,10 +47,10 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
             className="mb-1 inline-block"
           >
             <div className="text-sm font-medium tracking-[0.2em] uppercase mb-4 text-[#D4B56A]">
-              WE'RE GETTING MARRIED
+              WE&apos;RE GETTING MARRIED
             </div>
             <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-normal mb-8 text-[#2D2D2D]">
-              Emma & James
+              Emma &amp; James
             </h1>
           </motion.div>
 
@@ -97,7 +97,7 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
             </Link>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
