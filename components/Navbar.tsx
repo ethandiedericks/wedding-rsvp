@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -61,49 +60,59 @@ export default function Navbar() {
 
   return (
     <header className="bg-background/80 backdrop-blur-sm fixed w-full z-50">
-      <nav className="container flex items-center justify-between px-6 py-4">
+      <nav className="container flex items-center justify-between px-6 py-4 relative">
         {/* Left: Heart Icon */}
-        <Link href="/" className="flex items-center">
-          <Heart className="h-6 w-6 text-[#C8935F]" />
-        </Link>
+        <div className="flex items-center">
+          <Link href="/">
+            <Heart className="h-6 w-6 text-rose-500" />
+          </Link>
+        </div>
 
-        {/* Right: Navigation Links and Auth (Desktop) */}
-        <div className="hidden md:flex items-center space-x-6">
+        {/* Center: Navigation Links (Desktop) */}
+        <div className="hidden md:flex items-center space-x-6 absolute left-1/2 transform -translate-x-1/2">
           <Link
             href="/"
-            className="text-sm font-medium transition-colors hover:text-[#C8935F]"
+            className="text-sm font-medium transition-colors hover:text-primary"
           >
             Home
           </Link>
-          <Link
-            href="/rsvp"
-            className="text-sm font-medium transition-colors hover:text-[#C8935F]"
-          >
-            RSVP
-          </Link>
+            <Link
+              href="/rsvp"
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              RSVP
+            </Link>
+      
           <Link
             href="/gifts"
-            className="text-sm font-medium transition-colors hover:text-[#C8935F]"
+            className="text-sm font-medium transition-colors hover:text-primary"
           >
             Gift Registry
           </Link>
+
+        </div>
+
+        {/* Right: Auth and Admin Links (Desktop) */}
+        <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated ? (
             <>
               {isAdmin && (
-                <Link href="/admin" passHref>
-                  <Button variant="outline" className="border-[#C8935F] text-[#C8935F] hover:bg-[#C8935F] hover:text-white">
-                    Admin
-                  </Button>
+                <Link
+                  href="/admin"
+                  className="text-sm font-medium transition-colors hover:text-primary"
+                  passHref
+                >
+                  <Button variant="outline">Admin</Button>
                 </Link>
               )}
-              <Button onClick={handleSignOut} className="bg-[#C8935F] text-white hover:bg-[#B27F4E]">
+              <Button onClick={handleSignOut}>
                 <LogOut className="mr-1 h-4 w-4" />
                 Sign Out
               </Button>
             </>
           ) : (
             <Link href="/auth/signin" passHref>
-              <Button className="bg-[#C8935F] text-white hover:bg-[#B27F4E]">
+              <Button>
                 <LogIn className="mr-2 h-4 w-4" />
                 Sign In
               </Button>
@@ -111,7 +120,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Button */}
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild className="md:hidden">
             <Button variant="ghost" size="icon">
@@ -123,14 +132,14 @@ export default function Navbar() {
             <div className="flex flex-col space-y-4 mt-8">
               <Link
                 href="/"
-                className="text-sm font-medium transition-colors hover:text-[#C8935F]"
+                className="text-sm font-medium transition-colors hover:text-primary"
                 onClick={() => setIsOpen(false)}
               >
                 Home
               </Link>
               <Link
                 href="/gifts"
-                className="text-sm font-medium transition-colors hover:text-[#C8935F]"
+                className="text-sm font-medium transition-colors hover:text-primary"
                 onClick={() => setIsOpen(false)}
               >
                 Gift Registry
@@ -138,7 +147,7 @@ export default function Navbar() {
               {isAuthenticated && (
                 <Link
                   href="/rsvp"
-                  className="text-sm font-medium transition-colors hover:text-[#C8935F]"
+                  className="text-sm font-medium transition-colors hover:text-primary"
                   onClick={() => setIsOpen(false)}
                 >
                   RSVP
@@ -147,7 +156,7 @@ export default function Navbar() {
               {isAuthenticated && isAdmin && (
                 <Link
                   href="/admin"
-                  className="text-sm font-medium transition-colors hover:text-[#C8935F]"
+                  className="text-sm font-medium transition-colors hover:text-primary"
                   onClick={() => setIsOpen(false)}
                 >
                   Admin
@@ -157,7 +166,7 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="justify-start px-0 text-[#C8935F] hover:text-[#B27F4E]"
+                  className="justify-start px-0"
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -165,7 +174,7 @@ export default function Navbar() {
                 </Button>
               ) : (
                 <Link href="/auth/signin" passHref>
-                  <Button onClick={() => setIsOpen(false)} className="bg-[#C8935F] text-white hover:bg-[#B27F4E]">
+                  <Button onClick={() => setIsOpen(false)}>
                     <LogIn className="mr-2 h-4 w-4" />
                     Sign In
                   </Button>
