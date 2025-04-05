@@ -1,6 +1,11 @@
-"use client";
 
-import { useState, useEffect } from "react";
+'use client';
+
+import { useEffect, useState } from 'react';
+
+interface CountdownTimerProps {
+  targetDate: string;
+}
 
 interface TimeLeft {
   days: number;
@@ -9,66 +14,58 @@ interface TimeLeft {
   seconds: number;
 }
 
-type CountdownTimerProps = {
-  targetDate: string;
-};
-
 export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
-  const calculateTimeLeft = (): TimeLeft => {
-    const difference = +new Date(targetDate) - +new Date();
-
-    let timeLeft: TimeLeft = {
-      days: 0,
-      hours: 0,
-      minutes: 0,
-      seconds: 0,
-    };
-
-    if (difference > 0) {
-      timeLeft = {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60),
-      };
-    }
-
-    return timeLeft;
-  };
-
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft());
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
+    setMounted(true);
+    const calculateTimeLeft = () => {
+      const difference = +new Date(targetDate) - +new Date();
+      let newTimeLeft = {
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0
+      };
+
+      if (difference > 0) {
+        newTimeLeft = {
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60)
+        };
+      }
+
+      setTimeLeft(newTimeLeft);
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(timer);
   }, [targetDate]);
 
-  const timeUnits = [
-    { label: "Days", value: timeLeft.days },
-    { label: "Hours", value: timeLeft.hours },
-    { label: "Minutes", value: timeLeft.minutes },
-    { label: "Seconds", value: timeLeft.seconds },
-  ];
+  if (!mounted) {
+    return <div className="h-24 bg-white/10 rounded-lg animate-pulse" />;
+  }
 
   return (
-    <div className="flex justify-center items-center space-x-4 md:space-x-6">
-      {timeUnits.map((unit, index) => (
-        <div
-          key={unit.label}
-          className="flex flex-col items-center animate-fade-in"
-          style={{ animationDelay: `${index * 100}ms` }}
-        >
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl w-16 md:w-20 h-16 md:h-20 flex items-center justify-center mb-2">
+    <div className="flex justify-center gap-4 md:gap-8">
+      {Object.entries(timeLeft).map(([key, value]) => (
+        <div key={key} className="flex flex-col items-center">
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-4 w-16 md:w-24 text-center">
             <span className="text-white text-xl md:text-2xl font-semibold">
-              {unit.value < 10 ? `0${unit.value}` : unit.value}
+              {value}
             </span>
           </div>
-          <span className="text-white/80 text-xs uppercase tracking-wider">
-            {unit.label}
-          </span>
+          <span className="text-white/80 text-sm mt-1 capitalize">{key}</span>
         </div>
       ))}
     </div>
