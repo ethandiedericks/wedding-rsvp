@@ -1,0 +1,33 @@
+Error: `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+    at createUnhandledError (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_client_43e3ffb8._.js:879:71)
+    at handleClientError (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_client_43e3ffb8._.js:1052:56)
+    at console.error (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_client_43e3ffb8._.js:1191:56)
+    at TitleWarning.useEffect (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15653:40)
+    at https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15587:215
+    at https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15507:206
+    at DialogContent (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15487:229)
+    at DialogContent (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15485:206)
+    at SheetContent (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/_a87f2599._.js:213:215)
+    at Slot (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:7872:206)
+    at Primitive.div (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:12535:210)
+    at Portal (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:13204:407)
+    at https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15435:221
+    at https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1219:25
+    at mapIntoArray (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1197:24)
+    at mapIntoArray (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1206:166)
+    at Object.mapChildren [as map] (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1218:9)
+    at DialogPortal (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15433:189)
+    at https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15433:406
+    at https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1219:25
+    at mapIntoArray (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1197:24)
+    at mapIntoArray (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1206:166)
+    at Object.mapChildren [as map] (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1218:9)
+    at DialogPortal (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/node_modules_08e3de8a._.js:15433:189)
+    at SheetPortal (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/_a87f2599._.js:183:214)
+    at SheetContent (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/_a87f2599._.js:206:214)
+    at Navbar (https://c4ec223b-de97-4f73-8e4a-70570f86c774-00-1ftcttwd9s0zh.picard.replit.dev/_next/static/chunks/_a87f2599._.js:560:227)
+    at RootLayout (rsc://React/Server/file:///home/runner/workspace/.next/server/chunks/ssr/%5Broot%20of%20the%20server%5D__346c77ba._.js?73:253:268)
