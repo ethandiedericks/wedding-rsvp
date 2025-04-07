@@ -1,38 +1,57 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+
 import Link from "next/link";
 import CountdownTimer from "@/components/home/CountdownTimer";
 
-type WeddingDetails = {
-  date: string;
-  time: string;
-  venue: string;
-  address: string;
-  dresscode: string;
-};
-
-interface HeroSectionProps {
-  weddingDetails: WeddingDetails;
-}
-
-export default function HeroSection({ weddingDetails }: HeroSectionProps) {
+export default function HeroSection() {
   const [loaded, setLoaded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     setLoaded(true);
+
+    // Handle video looping - this ensures seamless playback
+    const video = videoRef.current;
+    if (video) {
+      video.addEventListener("ended", () => {
+        // Reset to the beginning and start playing again
+        video.currentTime = 0;
+        video.play();
+      });
+
+      return () => {
+        // Clean up the event listener
+        if (video) {
+          video.removeEventListener("ended", () => {});
+        }
+      };
+    }
   }, []);
 
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#FDFBF7]"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden"
     >
-      <div className="absolute inset-0 bg-[url('/images/texture.png')] opacity-10" />
-      
+      {/* Video Background */}
+      <div className="absolute inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
+        {/* Overlay with texture for better visual hierarchy */}
+        <div className="absolute inset-0 bg-black opacity-40" />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -47,10 +66,10 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
             className="mb-1 inline-block"
           >
             <div className="text-sm font-medium tracking-[0.2em] uppercase mb-4 text-[#D4B56A]">
-              WE&apos;RE GETTING MARRIED
+              {"WE'RE GETTING MARRIED"}
             </div>
-            <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-normal mb-8 text-[#2D2D2D]">
-              Emma &amp; James
+            <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-normal mb-4 text-white">
+              {"Russel & Larshanay"}
             </h1>
           </motion.div>
 
@@ -58,7 +77,7 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-lg md:text-xl opacity-90 mb-10 max-w-xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-white/90 mb-10 max-w-xl mx-auto leading-relaxed"
           >
             Join us to celebrate the beginning of our new journey together
           </motion.p>
@@ -81,18 +100,9 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
               <motion.span
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-[#D4B56A] hover:bg-[#C6A55D] text-white px-8 py-3 inline-block transition-all duration-300 tracking-wider"
+                className="border border-[#D4B56A] bg-[#D4B56A]/10 hover:bg-[#D4B56A]/20 text-[#D4B56A] px-8 py-3 inline-block transition-all duration-300 tracking-wider"
               >
                 RSVP NOW
-              </motion.span>
-            </Link>
-            <Link href="/details">
-              <motion.span
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="border border-[#D4B56A] hover:bg-[#D4B56A]/5 text-[#D4B56A] px-8 py-3 inline-block transition-all duration-300 tracking-wider"
-              >
-                Event Details
               </motion.span>
             </Link>
           </motion.div>
@@ -103,15 +113,17 @@ export default function HeroSection({ weddingDetails }: HeroSectionProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1, duration: 0.8 }}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="absolute bottom-2.5 md:bottom-6 lg:bottom-8 left-1/2 transform -translate-x-1/2"
       >
-        <Link 
-          href="#timeline"
-          className="text-[#2D2D2D]/80 flex flex-col items-center cursor-pointer"
+        <Link
+          href="#details"
+          className="text-white/80 flex flex-col items-center cursor-pointer"
           scroll={false}
           onClick={(e) => {
             e.preventDefault();
-            document.getElementById('timeline')?.scrollIntoView({ behavior: 'smooth' });
+            document
+              .getElementById("details")
+              ?.scrollIntoView({ behavior: "smooth" });
           }}
         >
           <span className="text-xs uppercase tracking-widest mb-2">Scroll</span>

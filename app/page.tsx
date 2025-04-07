@@ -3,7 +3,6 @@ import QuickLinksSection from "@/components/home/QuickLinksSection";
 import WeddingDetailsSection from "@/components/home/WeddingDetailsSection";
 import TimelineSection from "@/components/home/TimelineSection";
 import BridalCrewSection from "@/components/home/BridalCrewSection";
-import GiftRegistrySection from "./components/GiftRegistrySection";
 
 export default function Home() {
   const weddingDetails = {
@@ -67,12 +66,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <HeroSection weddingDetails={weddingDetails} />
-      <QuickLinksSection />
-      <GiftRegistrySection />
-      <BridalCrewSection />
+      <HeroSection />
       <WeddingDetailsSection weddingDetails={weddingDetails} />
       <TimelineSection timeline={timeline} />
+      <BridalCrewSection />
+      <QuickLinksSection />
     </div>
   );
 }

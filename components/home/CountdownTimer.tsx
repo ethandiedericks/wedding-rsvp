@@ -1,7 +1,6 @@
+"use client";
 
-'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 interface CountdownTimerProps {
   targetDate: string;
@@ -19,7 +18,7 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
     days: 0,
     hours: 0,
     minutes: 0,
-    seconds: 0
+    seconds: 0,
   });
   const [mounted, setMounted] = useState(false);
 
@@ -31,7 +30,7 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
         days: 0,
         hours: 0,
         minutes: 0,
-        seconds: 0
+        seconds: 0,
       };
 
       if (difference > 0) {
@@ -39,7 +38,7 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
           days: Math.floor(difference / (1000 * 60 * 60 * 24)),
           hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
           minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
+          seconds: Math.floor((difference / 1000) % 60),
         };
       }
 
@@ -60,8 +59,8 @@ export default function CountdownTimer({ targetDate }: CountdownTimerProps) {
     <div className="flex justify-center gap-4 md:gap-8">
       {Object.entries(timeLeft).map(([key, value]) => (
         <div key={key} className="flex flex-col items-center">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 md:p-4 w-16 md:w-24 text-center">
-            <span className="text-white text-xl md:text-2xl font-semibold">
+          <div className="bg-black/20 backdrop-blur-sm rounded-lg p-2 md:p-4 w-16 md:w-24 text-center border border-[#D4B56A]/30">
+            <span className="text-gray-100 text-xl md:text-2xl font-semibold">
               {value}
             </span>
           </div>

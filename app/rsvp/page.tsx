@@ -1,6 +1,9 @@
 "use client";
 
+import type React from "react";
+
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,8 +14,8 @@ import AttendanceStep from "@/components/rsvp/AttendanceStep";
 import PartySelectionStep from "@/components/rsvp/PartySelectionStep";
 import AdditionalInfoStep from "@/components/rsvp/AdditionalInfoStep";
 import SuccessMessage from "@/components/rsvp/SuccessMessage";
-import { FormData, Gift, RSVPRecord } from "@/lib/types";
-import Loader from "@/components/Loader";
+import type { FormData, Gift } from "@/lib/types";
+import { Heart } from "lucide-react";
 
 export default function RSVP() {
   const [step, setStep] = useState<number>(1);
@@ -31,16 +34,18 @@ export default function RSVP() {
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const checkAuthAndLoad = async () => {
+      setLoading(true);
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
       if (sessionError || !session) {
-        router.replace("/auth/signin");
+        router.replace("/");
         return;
       }
 
@@ -59,6 +64,7 @@ export default function RSVP() {
 
       if (existingRSVP) {
         setHasSubmitted(true);
+        setLoading(false);
         return;
       }
 
@@ -70,7 +76,7 @@ export default function RSVP() {
 
       if (profileError) {
         toast.error("Error loading profile");
-        router.replace("/auth/signin");
+        router.replace("/");
         return;
       }
 
@@ -82,6 +88,7 @@ export default function RSVP() {
 
       fetchGifts();
       setHasSubmitted(false);
+      setLoading(false);
     };
     checkAuthAndLoad();
   }, [router]);
@@ -98,6 +105,15 @@ export default function RSVP() {
     }
   };
 
+  const handleStepChange = (newStep: number) => {
+    // If not attending, skip the party selection step
+    if (formData.attending === false && newStep === 3) {
+      setStep(4); // Skip to additional info step
+    } else {
+      setStep(newStep);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -108,13 +124,20 @@ export default function RSVP() {
     } = await supabase.auth.getSession();
     if (sessionError || !session) {
       toast.error("You must be logged in to RSVP");
-      router.replace("/auth/signin");
+      router.replace("/");
       setIsSubmitting(false);
       return;
     }
 
-    if (!formData.fullName || formData.attending === null || !formData.gender) {
+    if (!formData.fullName || formData.attending === null) {
       toast.error("Please complete all required fields");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Only validate gender if attending
+    if (formData.attending && !formData.gender) {
+      toast.error("Please select your gender for party selection");
       setIsSubmitting(false);
       return;
     }
@@ -142,7 +165,7 @@ export default function RSVP() {
         formData.attending && formData.partyChoice !== "none"
           ? formData.partyChoice
           : "none",
-      gender: formData.gender,
+      gender: formData.gender || "none", // Default to "none" if not attending
       dietary_restrictions: formData.dietaryRestrictions || null,
       song_request: formData.songRequest || null,
     });
@@ -182,53 +205,134 @@ export default function RSVP() {
     toast.success("RSVP submitted successfully!");
   };
 
-  if (hasSubmitted === null) {
-    return <Loader />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] pt-20 pb-16 flex flex-col items-center justify-center">
+        <Heart className="text-[#D4B56A] animate-pulse mb-4" size={40} />
+        <h2 className="font-serif text-2xl font-medium text-[#2D2D2D] mb-2">
+          Loading RSVP Form
+        </h2>
+        <p className="text-muted-foreground">
+          Please wait while we prepare your RSVP form...
+        </p>
+        <div className="mt-8 animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#D4B56A]"></div>
+      </div>
+    );
   }
 
   if (hasSubmitted) {
     return <SuccessMessage />;
   }
 
+  const variants = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+  };
+
   return (
-    <div className="container mx-auto p-4">
-      <Card className="max-w-[40rem] mx-auto">
-        <StepIndicator step={step} />
-        <form onSubmit={handleSubmit}>
-          {step === 1 && (
-            <PersonalInfoStep
-              formData={formData}
-              setFormData={setFormData}
-              nextStep={() => setStep(2)}
-            />
-          )}
-          {step === 2 && (
-            <AttendanceStep
-              formData={formData}
-              setFormData={setFormData}
-              gifts={gifts}
-              prevStep={() => setStep(1)}
-              nextStep={() => setStep(3)}
-            />
-          )}
-          {step === 3 && (
-            <PartySelectionStep
-              formData={formData}
-              setFormData={setFormData}
-              prevStep={() => setStep(2)}
-              nextStep={() => setStep(4)}
-            />
-          )}
-          {step === 4 && (
-            <AdditionalInfoStep
-              formData={formData}
-              setFormData={setFormData}
-              prevStep={() => setStep(3)}
-              isSubmitting={isSubmitting}
-            />
-          )}
-        </form>
-      </Card>
+    <div className="min-h-screen bg-[#FDFBF7] pt-20 pb-16">
+      <div className="container mx-auto px-4">
+        <motion.div
+          className="text-center mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Heart className="mx-auto text-[#D4B56A] mb-3" size={32} />
+          <h1 className="font-serif text-3xl md:text-4xl font-semibold mb-3 text-[#2D2D2D]">
+            RSVP
+          </h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            We&apos;re excited to celebrate our special day with you. Please let
+            us know if you&apos;ll be joining us.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Card className="max-w-[40rem] mx-auto border-none shadow-md overflow-hidden">
+            <StepIndicator step={step} totalSteps={4} />
+            <form onSubmit={handleSubmit}>
+              <AnimatePresence mode="wait">
+                {step === 1 && (
+                  <motion.div
+                    key="step1"
+                    variants={variants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PersonalInfoStep
+                      formData={formData}
+                      setFormData={setFormData}
+                      nextStep={() => handleStepChange(2)}
+                    />
+                  </motion.div>
+                )}
+                {step === 2 && (
+                  <motion.div
+                    key="step2"
+                    variants={variants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    <AttendanceStep
+                      formData={formData}
+                      setFormData={setFormData}
+                      gifts={gifts}
+                      prevStep={() => handleStepChange(1)}
+                      nextStep={() => handleStepChange(3)}
+                    />
+                  </motion.div>
+                )}
+                {step === 3 && (
+                  <motion.div
+                    key="step3"
+                    variants={variants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PartySelectionStep
+                      formData={formData}
+                      setFormData={setFormData}
+                      prevStep={() => handleStepChange(2)}
+                      nextStep={() => handleStepChange(4)}
+                    />
+                  </motion.div>
+                )}
+                {step === 4 && (
+                  <motion.div
+                    key="step4"
+                    variants={variants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    <AdditionalInfoStep
+                      formData={formData}
+                      setFormData={setFormData}
+                      prevStep={() =>
+                        handleStepChange(formData.attending ? 3 : 2)
+                      }
+                      isSubmitting={isSubmitting}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </form>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 }

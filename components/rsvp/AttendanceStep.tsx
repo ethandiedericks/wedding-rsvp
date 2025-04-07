@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -7,7 +9,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CardContent } from "@/components/ui/card";
-import { FormData, Gift } from "@/lib/types";
+import type { FormData, Gift } from "@/lib/types";
+import { Label } from "@/components/ui/label";
+import { Check, X, Users, GiftIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type AttendanceStepProps = {
   formData: FormData;
@@ -25,45 +30,104 @@ export default function AttendanceStep({
   nextStep,
 }: AttendanceStepProps) {
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    if (name === "selectedGift") {
+      setFormData({
+        ...formData,
+        [name]: value === "none" ? null : Number.parseInt(value, 10),
+      });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
-  const renderAttendingButtons = () => (
-    <div className="flex justify-center space-x-4 mb-6">
-      {[true, false].map((value) => (
-        <Button
-          key={value ? "yes" : "no"}
-          type="button"
-          onClick={() => setFormData({ ...formData, attending: value })}
-          variant={formData.attending === value ? "default" : "outline"}
-        >
-          {value ? "Yes, I'll be there" : "Sorry, can't make it"}
-        </Button>
-      ))}
-    </div>
-  );
-
   return (
-    <CardContent>
-      <div className="space-y-4">
-        <h3 className="text-xl font-medium text-center mb-6">
-          Will you be attending?
-        </h3>
-        {renderAttendingButtons()}
+    <CardContent className="p-6 md:p-8">
+      <div className="space-y-6">
+        <div className="text-center mb-2">
+          <h3 className="font-serif text-xl font-medium text-[#2D2D2D] mb-2">
+            Will you be attending our wedding?
+          </h3>
+          <p className="text-muted-foreground text-sm">
+            Please let us know if you&apos;ll be able to join us on our special
+            day
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-2">
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, attending: true })}
+            className={cn(
+              "flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-300",
+              formData.attending === true
+                ? "bg-[#D4B56A]/10 border-[#D4B56A] text-[#D4B56A]"
+                : "bg-white border-[#D4B56A]/30 hover:border-[#D4B56A]/60"
+            )}
+          >
+            <div
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center mb-2",
+                formData.attending === true
+                  ? "bg-[#D4B56A] text-white"
+                  : "bg-[#D4B56A]/10 text-[#D4B56A]"
+              )}
+            >
+              <Check size={20} />
+            </div>
+            <span className="font-medium">Yes, I&apos;ll attend</span>
+            <span className="text-xs text-muted-foreground mt-1">
+              I wouldn&apos;t miss it!
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, attending: false })}
+            className={cn(
+              "flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-300",
+              formData.attending === false
+                ? "bg-gray-100 border-gray-300 text-gray-700"
+                : "bg-white border-gray-200 hover:border-gray-300"
+            )}
+          >
+            <div
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center mb-2",
+                formData.attending === false
+                  ? "bg-gray-300 text-white"
+                  : "bg-gray-100 text-gray-400"
+              )}
+            >
+              <X size={20} />
+            </div>
+            <span className="font-medium">Sorry, can&apos;t make it</span>
+            <span className="text-xs text-muted-foreground mt-1">
+              I&apos;ll be there in spirit
+            </span>
+          </button>
+        </div>
+
         {formData.attending === true && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-5 animate-fadeIn">
+            <div className="space-y-2">
+              <Label
+                htmlFor="guestCount"
+                className="text-[#2D2D2D] flex items-center"
+              >
+                <Users size={16} className="mr-2 text-[#D4B56A]" />
                 Number of Guests (including yourself)
-              </label>
+              </Label>
               <Select
                 onValueChange={(value) =>
                   handleSelectChange("guestCount", value)
                 }
                 value={formData.guestCount.toString()}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Number of Guests (including yourself)" />
+                <SelectTrigger
+                  id="guestCount"
+                  className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
+                >
+                  <SelectValue placeholder="Select number of guests" />
                 </SelectTrigger>
                 <SelectContent>
                   {[...Array(6)].map((_, i) => (
@@ -73,20 +137,36 @@ export default function AttendanceStep({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Please include yourself in the guest count
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Gift Selection (optional)
-              </label>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor="selectedGift"
+                className="text-[#2D2D2D] flex items-center"
+              >
+                <GiftIcon size={16} className="mr-2 text-[#D4B56A]" />
+                Gift Selection{" "}
+                <span className="text-muted-foreground font-normal ml-1">
+                  (optional)
+                </span>
+              </Label>
               <Select
                 onValueChange={(value) =>
                   handleSelectChange("selectedGift", value)
                 }
+                value={formData.selectedGift?.toString() || ""}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a Gift (optional)" />
+                <SelectTrigger
+                  id="selectedGift"
+                  className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
+                >
+                  <SelectValue placeholder="Select a gift (optional)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">No gift selection</SelectItem>
                   {gifts.map((gift) => (
                     <SelectItem key={gift.id} value={gift.id.toString()}>
                       {gift.name}
@@ -94,19 +174,30 @@ export default function AttendanceStep({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                You can select a gift from our registry or browse the full
+                registry later
+              </p>
             </div>
-          </>
+          </div>
         )}
-        <div className="flex justify-between mt-6">
-          <Button type="button" variant="outline" onClick={prevStep}>
+
+        <div className="flex justify-between pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={prevStep}
+            className="border-[#D4B56A]/30 text-[#D4B56A] hover:bg-[#D4B56A]/10 hover:text-[#D4B56A]"
+          >
             Back
           </Button>
           <Button
             type="button"
             onClick={nextStep}
             disabled={formData.attending === null}
+            className="bg-[#D4B56A] hover:bg-[#C4A55A] text-white"
           >
-            Next
+            Continue
           </Button>
         </div>
       </div>

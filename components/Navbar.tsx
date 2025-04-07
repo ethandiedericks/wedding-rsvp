@@ -2,18 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Heart, LogIn, LogOut, Menu } from "lucide-react";
+import { LogIn, LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useRouter } from "next/navigation";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useRouter, usePathname } from "next/navigation"; // Add usePathname
 
 export default function Navbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
+  const pathname = usePathname(); // Get current pathname
 
+  // Handle authentication
   useEffect(() => {
     const checkAuth = async () => {
       const {
@@ -52,78 +61,110 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/auth/signin");
     setIsOpen(false);
   };
 
+  // Determine if on homepage
+  const isHomePage = pathname === "/";
+
+  // Text color logic
+  const linkTextColor =
+    isHomePage && !scrolled
+      ? "text-white hover:text-white/80"
+      : "text-[#2D2D2D] hover:text-primary";
+
   return (
-    <header className="bg-background/80 backdrop-blur-sm fixed w-full z-50">
-      <nav className="container flex items-center justify-between px-6 py-4 relative">
-        {/* Left: Heart Icon */}
+    <header
+      className={`fixed w-full z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-background/80 backdrop-blur-sm shadow-sm"
+          : "bg-transparent"
+      }`}
+    >
+      <nav className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-4">
+        {/* Left: Logo */}
         <div className="flex items-center">
           <Link href="/">
-            <Heart className="h-6 w-6 text-rose-500" />
+            <h1
+              className={`font-serif text-lg md:text-xl lg:text-2xl font-normal ${
+                isHomePage && !scrolled ? "text-white" : "text-[#2D2D2D]"
+              }`}
+            >
+              {"R & L"}
+            </h1>
           </Link>
         </div>
 
-        {/* Center: Navigation Links (Desktop) */}
-        <div className="hidden md:flex items-center space-x-6 absolute left-1/2 transform -translate-x-1/2">
+        {/* Right: Navigation Links + Auth (Desktop) */}
+        <div className="hidden md:flex items-center space-x-6">
           <Link
             href="/"
-            className="text-sm font-medium transition-colors hover:text-primary"
+            className={`text-sm tracking-wider  transition-colors ${linkTextColor}`}
           >
-            Home
+            HOME
           </Link>
           <Link
             href="/rsvp"
-            className="text-sm font-medium transition-colors hover:text-primary"
+            className={`text-sm tracking-wider  transition-colors ${linkTextColor}`}
           >
             RSVP
           </Link>
-
           <Link
             href="/gifts"
-            className="text-sm font-medium transition-colors hover:text-primary"
+            className={`text-sm tracking-wider  transition-colors ${linkTextColor}`}
           >
-            Gift Registry
+            GIFT REGISTRY
           </Link>
 
-        </div>
-
-        {/* Right: Auth and Admin Links (Desktop) */}
-        <div className="hidden md:flex items-center space-x-4">
-          {isAuthenticated ? (
-            <>
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="text-sm font-medium transition-colors hover:text-primary"
-                  passHref
+          {/* Authentication */}
+          <div className="flex items-center space-x-4 ml-6">
+            {isAuthenticated ? (
+              <>
+                {isAdmin && (
+                  <Link href="/admin" passHref>
+                    <button className="border hover:cursor-pointer border-[#D4B56A] hover:bg-[#D4B56A]/5 text-[#D4B56A] px-6 py-2 inline-block transition-all duration-300 tracking-wider">
+                      ADMIN
+                    </button>
+                  </Link>
+                )}
+                <button
+                  onClick={handleSignOut}
+                  className="bg-[#D4B56A] hover:cursor-pointer hover:bg-[#C6A55D] text-white px-6 py-2 inline-block transition-all duration-300 tracking-wider"
                 >
-                  <Button variant="outline">Admin</Button>
-                </Link>
-              )}
-              <Button onClick={handleSignOut}>
-                <LogOut className="mr-1 h-4 w-4" />
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <Link href="/auth/signin" passHref>
-              <Button>
-                <LogIn className="mr-2 h-4 w-4" />
-                Sign In
-              </Button>
-            </Link>
-          )}
+                  SIGN OUT
+                </button>
+              </>
+            ) : (
+              <Link href="/auth/signin">
+                <span className="bg-[#D4B56A] hover:cursor-pointer hover:bg-[#C6A55D] text-white px-6 py-2 inline-block transition-all duration-300 tracking-wider">
+                  SIGN IN
+                </span>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Mobile Menu Button */}
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={!scrolled && isHomePage ? "text-white" : ""}
+            >
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>

@@ -3,9 +3,9 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer className="py-8 bg-muted/50 border-t">
+    <footer className="py-8 bg-[#D4B56A]/10 border-t">
       <div className="container mx-auto px-4 text-center">
-        <p className="font-serif text-xl mb-2">Emma & James</p>
+        <p className="font-serif text-xl mb-2">Russel & Larshanay</p>
         <p className="text-sm text-muted-foreground">
           June 1, 2025 • Rosewood Gardens
         </p>
