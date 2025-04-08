@@ -1,67 +1,46 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { addGift } from "@/app/actions/gifts";
 
 interface GiftFormProps {
   onSubmit: () => void;
 }
 
 const GiftForm: React.FC<GiftFormProps> = ({ onSubmit }) => {
-  const [newGiftName, setNewGiftName] = useState("");
-  const [newGiftImage, setNewGiftImage] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const handleAddGift = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleSubmit(formData: FormData) {
     setIsLoading(true);
-
-    if (!newGiftName) {
-      toast.error("Please enter a gift name");
-      setIsLoading(false);
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("name", newGiftName);
-    if (newGiftImage) formData.append("image", newGiftImage);
-
     try {
-      const response = await fetch("/api/add-gift", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(result.error);
-      } else {
-        toast.success(result.message);
-        setNewGiftName("");
-        setNewGiftImage(null);
-        onSubmit();
-      }
+      const result = await addGift(formData);
+      toast.success(result.message);
+      formRef.current?.reset();
+      onSubmit();
     } catch (error) {
-      toast.error("Failed to add gift");
+      toast.error(error instanceof Error ? error.message : "Failed to add gift");
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   return (
-    <form onSubmit={handleAddGift} className="space-y-4">
+    <form ref={formRef} onSubmit={(e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      handleSubmit(formData);
+    }} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="gift-name">Gift Name</Label>
         <Input
           id="gift-name"
+          name="name"
           placeholder="Enter gift name"
-          value={newGiftName}
-          onChange={(e) => setNewGiftName(e.target.value)}
           className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
         />
       </div>
@@ -70,9 +49,9 @@ const GiftForm: React.FC<GiftFormProps> = ({ onSubmit }) => {
         <Label htmlFor="gift-image">Gift Image</Label>
         <Input
           id="gift-image"
+          name="image"
           type="file"
           accept="image/*"
-          onChange={(e) => setNewGiftImage(e.target.files?.[0] || null)}
           className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
         />
       </div>
