@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { getSession } from "@/app/actions/auth";
+import { getProfile } from "@/app/actions/profile";
 import { deleteRSVP } from "@/app/actions/rsvp";
 import { deleteGift } from "@/app/actions/gifts";
 import { deleteCrewMember } from "@/app/actions/crew";
@@ -112,7 +114,11 @@ export default function AdminDashboard() {
 
       await fetchData();
     } catch (error) {
-      console.error("Auth error:", error);
+      if (error instanceof Error) {
+        console.error("Auth error:", error.message);
+      } else {
+        console.error("Auth error:", error);
+      }
       router.replace("/auth/signin");
     } finally {
       setLoading(false);
