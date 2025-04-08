@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { deleteRSVP } from "@/app/actions/rsvp";
+import { deleteGift } from "@/app/actions/gifts";
+import { deleteCrewMember } from "@/app/actions/crew";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -158,55 +161,32 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteGift = async (giftId: number) => {
-    const { error } = await supabase.from("gifts").delete().eq("id", giftId);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Gift deleted successfully!");
+    try {
+      const result = await deleteGift(giftId);
+      toast.success(result.message);
       fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete gift");
     }
   };
 
   const handleDeleteCrewMember = async (crewId: number) => {
-    const { error } = await supabase
-      .from("bridal_crew")
-      .delete()
-      .eq("id", crewId);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Crew member deleted successfully!");
+    try {
+      const result = await deleteCrewMember(crewId);
+      toast.success(result.message);
       fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete crew member");
     }
   };
 
   const handleDeleteRSVP = async (rsvpId: string) => {
-    const { data: claimedGifts, error: giftError } = await supabase
-      .from("gifts")
-      .select("id")
-      .eq("claimed_by", rsvpId);
-
-    if (giftError) {
-      toast.error("Error checking claimed gifts: " + giftError.message);
-      return;
-    }
-
-    if (claimedGifts && claimedGifts.length > 0) {
-      const giftIds = claimedGifts.map((gift) => gift.id);
-      const { error: updateError } = await supabase
-        .from("gifts")
-        .update({ available: true, claimed_by: null })
-        .in("id", giftIds);
-
-      if (updateError) {
-        toast.error("Error releasing claimed gifts: " + updateError.message);
-        return;
-      }
-    }
-
-    const { error } = await supabase.from("rsvp").delete().eq("id", rsvpId);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("RSVP deleted successfully!");
+    try {
+      const result = await deleteRSVP(rsvpId);
+      toast.success(result.message);
       fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete RSVP");
     }
   };
 
