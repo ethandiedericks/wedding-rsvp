@@ -11,7 +11,6 @@ import { Card } from "@/components/ui/card";
 import StepIndicator from "@/components/rsvp/StepIndicator";
 import PersonalInfoStep from "@/components/rsvp/PersonalInfoStep";
 import AttendanceStep from "@/components/rsvp/AttendanceStep";
-import PartySelectionStep from "@/components/rsvp/PartySelectionStep";
 import AdditionalInfoStep from "@/components/rsvp/AdditionalInfoStep";
 import SuccessMessage from "@/components/rsvp/SuccessMessage";
 import type { FormData, Gift } from "@/lib/types";
@@ -25,8 +24,7 @@ export default function RSVP() {
     phone: "",
     attending: null,
     guestCount: 0,
-    gender: null,
-    partyChoice: "none",
+    additional_guests: [], // This should be an array of { full_name: "", surname: "" } objects when guests are added
     selectedGift: null,
     dietaryRestrictions: "",
     songRequest: "",
@@ -106,9 +104,11 @@ export default function RSVP() {
   };
 
   const handleStepChange = (newStep: number) => {
-    // If not attending, skip the party selection step
-    if (formData.attending === false && newStep === 3) {
+    // Skip the party selection step (step 3)
+    if (step === 2 && newStep === 3) {
       setStep(4); // Skip to additional info step
+    } else if (step === 4 && newStep === 3) {
+      setStep(2); // Go back to attendance step
     } else {
       setStep(newStep);
     }
@@ -135,11 +135,21 @@ export default function RSVP() {
       return;
     }
 
-    // Only validate gender if attending
-    if (formData.attending && !formData.gender) {
-      toast.error("Please select your gender for party selection");
-      setIsSubmitting(false);
-      return;
+    // Validate additional guests if attending with others
+    if (formData.attending && formData.guestCount > 1) {
+      if (formData.additional_guests.length < formData.guestCount - 1) {
+        toast.error("Please provide details for all additional guests");
+        setIsSubmitting(false);
+        return;
+      }
+
+      for (const guest of formData.additional_guests) {
+        if (!guest.full_name || !guest.surname) {
+          toast.error("Please complete all guest details");
+          setIsSubmitting(false);
+          return;
+        }
+      }
     }
 
     if (formData.selectedGift) {
@@ -161,11 +171,13 @@ export default function RSVP() {
       id: session.user.id,
       attending: formData.attending,
       guest_count: formData.attending ? formData.guestCount : 0,
-      party_choice:
-        formData.attending && formData.partyChoice !== "none"
-          ? formData.partyChoice
-          : "none",
-      gender: formData.gender || "none", // Default to "none" if not attending
+      additional_guests:
+        formData.additional_guests.length > 0
+          ? formData.additional_guests.map((guest) => ({
+              full_name: guest.full_name,
+              surname: guest.surname,
+            }))
+          : null,
       dietary_restrictions: formData.dietaryRestrictions || null,
       song_request: formData.songRequest || null,
     });
@@ -255,7 +267,7 @@ export default function RSVP() {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Card className="max-w-[40rem] mx-auto border-none shadow-md overflow-hidden">
-            <StepIndicator step={step} totalSteps={4} />
+            <StepIndicator step={step} totalSteps={3} />
             <form onSubmit={handleSubmit}>
               <AnimatePresence mode="wait">
                 {step === 1 && (
@@ -288,23 +300,6 @@ export default function RSVP() {
                       setFormData={setFormData}
                       gifts={gifts}
                       prevStep={() => handleStepChange(1)}
-                      nextStep={() => handleStepChange(3)}
-                    />
-                  </motion.div>
-                )}
-                {step === 3 && (
-                  <motion.div
-                    key="step3"
-                    variants={variants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    transition={{ duration: 0.3 }}
-                  >
-                    <PartySelectionStep
-                      formData={formData}
-                      setFormData={setFormData}
-                      prevStep={() => handleStepChange(2)}
                       nextStep={() => handleStepChange(4)}
                     />
                   </motion.div>
@@ -321,9 +316,7 @@ export default function RSVP() {
                     <AdditionalInfoStep
                       formData={formData}
                       setFormData={setFormData}
-                      prevStep={() =>
-                        handleStepChange(formData.attending ? 3 : 2)
-                      }
+                      prevStep={() => handleStepChange(3)}
                       isSubmitting={isSubmitting}
                     />
                   </motion.div>

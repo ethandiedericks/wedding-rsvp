@@ -13,6 +13,8 @@ import type { FormData, Gift } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Check, X, Users, GiftIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { useEffect } from "react";
 
 type AttendanceStepProps = {
   formData: FormData;
@@ -35,10 +37,65 @@ export default function AttendanceStep({
         ...formData,
         [name]: value === "none" ? null : Number.parseInt(value, 10),
       });
+    } else if (name === "guestCount") {
+      const count = Number.parseInt(value, 10);
+
+      // Initialize or adjust the additionalGuests array based on the new count
+      let newAdditionalGuests = [...formData.additional_guests];
+
+      // If the new count is less than the current array length, trim the array
+      if (count < newAdditionalGuests.length + 1) {
+        newAdditionalGuests = newAdditionalGuests.slice(0, count - 1);
+      }
+      // If the new count is more, add empty entries
+      else if (count > newAdditionalGuests.length + 1) {
+        const additionalEntries = Array(count - newAdditionalGuests.length - 1)
+          .fill(null)
+          .map(() => ({ full_name: "", surname: "" }));
+        newAdditionalGuests = [...newAdditionalGuests, ...additionalEntries];
+      }
+
+      setFormData({
+        ...formData,
+        guestCount: count,
+        additional_guests: newAdditionalGuests,
+      });
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
+  const handleGuestChange = (index: number, field: string, value: string) => {
+    const updatedGuests = [...formData.additional_guests];
+    updatedGuests[index] = {
+      ...updatedGuests[index],
+      [field]: value,
+    };
+    setFormData({
+      ...formData,
+      additional_guests: updatedGuests,
+    });
+  };
+
+  // Ensure additional_guests array is properly initialized when component mounts
+  useEffect(() => {
+    if (
+      formData.attending &&
+      formData.guestCount > 1 &&
+      formData.additional_guests.length < formData.guestCount - 1
+    ) {
+      const newAdditionalGuests = [...formData.additional_guests];
+      const additionalEntries = Array(
+        formData.guestCount - 1 - newAdditionalGuests.length
+      )
+        .fill(null)
+        .map(() => ({ full_name: "", surname: "" }));
+
+      setFormData({
+        ...formData,
+        additional_guests: [...newAdditionalGuests, ...additionalEntries],
+      });
+    }
+  }, [formData, setFormData]);
 
   return (
     <CardContent className="p-6 md:p-8">
@@ -142,6 +199,79 @@ export default function AttendanceStep({
               </p>
             </div>
 
+            {formData.guestCount > 1 && (
+              <div className="space-y-4 border border-[#D4B56A]/20 rounded-lg p-4 bg-[#FDFBF7]">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-[#2D2D2D]">
+                    Additional Guests
+                  </h4>
+                  <div className="text-xs text-muted-foreground">
+                    {formData.additional_guests.length} of{" "}
+                    {formData.guestCount - 1} guests
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {formData.additional_guests.map((guest, index) => (
+                    <div
+                      key={index}
+                      className="space-y-3 pb-3 border-b border-[#D4B56A]/10 last:border-0"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-sm font-medium text-[#2D2D2D]">
+                          Guest {index + 1}
+                        </h5>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor={`guest-${index}-firstname`}
+                            className="text-sm"
+                          >
+                            First Name
+                          </Label>
+                          <Input
+                            id={`guest-${index}-firstname`}
+                            value={guest.full_name}
+                            onChange={(e) =>
+                              handleGuestChange(
+                                index,
+                                "full_name", // Changed from "fullName" to "full_name"
+                                e.target.value
+                              )
+                            }
+                            placeholder="First name"
+                            className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label
+                            htmlFor={`guest-${index}-surname`}
+                            className="text-sm"
+                          >
+                            Surname
+                          </Label>
+                          <Input
+                            id={`guest-${index}-surname`}
+                            value={guest.surname}
+                            onChange={(e) =>
+                              handleGuestChange(
+                                index,
+                                "surname",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Surname"
+                            className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label
                 htmlFor="selectedGift"
@@ -194,7 +324,14 @@ export default function AttendanceStep({
           <Button
             type="button"
             onClick={nextStep}
-            disabled={formData.attending === null}
+            disabled={
+              formData.attending === null ||
+              (formData.attending &&
+                formData.guestCount > 1 &&
+                formData.additional_guests.some(
+                  (guest) => !guest.full_name || !guest.surname
+                ))
+            }
             className="bg-[#D4B56A] hover:bg-[#C4A55A] text-white"
           >
             Continue

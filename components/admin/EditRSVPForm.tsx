@@ -6,13 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Trash2 } from "lucide-react";
 import type { RSVP } from "@/types/admin";
 
 interface EditRSVPFormProps {
@@ -23,16 +17,49 @@ interface EditRSVPFormProps {
 const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
   const [editedRSVP, setEditedRSVP] = useState<RSVP>({ ...rsvp });
   const [isLoading, setIsLoading] = useState(false);
+  const [newGuest, setNewGuest] = useState({ full_name: "", surname: "" });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    onSubmit(editedRSVP);
-    // Note: The loading state will be reset when the dialog closes
+    // Map additionalGuests to additional_guests for Supabase
+    const updatedRSVPForSupabase = {
+      ...editedRSVP,
+    };
+    onSubmit(updatedRSVPForSupabase as RSVP); // Cast back to RSVP type
+  };
+
+  const addGuest = () => {
+    if (newGuest.full_name.trim() && newGuest.surname.trim()) {
+      setEditedRSVP({
+        ...editedRSVP,
+        additional_guests: [...editedRSVP.additional_guests, newGuest],
+      });
+      setNewGuest({ full_name: "", surname: "" });
+    }
+  };
+
+  const removeGuest = (index: number) => {
+    setEditedRSVP({
+      ...editedRSVP,
+      additional_guests: editedRSVP.additional_guests.filter(
+        (_, i) => i !== index
+      ),
+    });
+  };
+
+  const updateGuest = (
+    index: number,
+    field: "full_name" | "surname",
+    value: string
+  ) => {
+    const updatedGuests = [...editedRSVP.additional_guests];
+    updatedGuests[index] = { ...updatedGuests[index], [field]: value };
+    setEditedRSVP({ ...editedRSVP, additional_guests: updatedGuests });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-2">
         <Checkbox
           id="attending"
@@ -67,53 +94,58 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="party-choice">Party Choice</Label>
-        <Select
-          value={editedRSVP.party_choice}
-          onValueChange={(value) =>
-            setEditedRSVP({
-              ...editedRSVP,
-              party_choice: value as RSVP["party_choice"],
-            })
-          }
-        >
-          <SelectTrigger
-            id="party-choice"
+      <div className="space-y-4">
+        <Label>Additional Guests</Label>
+        {editedRSVP.additional_guests.map((guest, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <Input
+              value={guest.full_name}
+              onChange={(e) => updateGuest(index, "full_name", e.target.value)}
+              placeholder="Full Name"
+              className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
+            />
+            <Input
+              value={guest.surname}
+              onChange={(e) => updateGuest(index, "surname", e.target.value)}
+              placeholder="Surname"
+              className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
+            />
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => removeGuest(index)}
+              className="bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <div className="flex items-center gap-2">
+          <Input
+            value={newGuest.full_name}
+            onChange={(e) =>
+              setNewGuest({ ...newGuest, full_name: e.target.value })
+            }
+            placeholder="New Guest Full Name"
             className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
-          >
-            <SelectValue placeholder="Select party" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            <SelectItem value="bachelor">Bachelor</SelectItem>
-            <SelectItem value="bachelorette">Bachelorette</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="gender">Gender</Label>
-        <Select
-          value={editedRSVP.gender}
-          onValueChange={(value) =>
-            setEditedRSVP({
-              ...editedRSVP,
-              gender: value as RSVP["gender"],
-            })
-          }
-        >
-          <SelectTrigger
-            id="gender"
+          />
+          <Input
+            value={newGuest.surname}
+            onChange={(e) =>
+              setNewGuest({ ...newGuest, surname: e.target.value })
+            }
+            placeholder="New Guest Surname"
             className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
+          />
+          <Button
+            type="button"
+            onClick={addGuest}
+            className="bg-[#D4B56A] hover:bg-[#C4A55A] text-white"
           >
-            <SelectValue placeholder="Select gender" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="male">Male</SelectItem>
-            <SelectItem value="female">Female</SelectItem>
-          </SelectContent>
-        </Select>
+            Add
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">

@@ -41,9 +41,8 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
           </TableHead>
           <TableHead className="text-[#2D2D2D] font-medium">Guests</TableHead>
           <TableHead className="text-[#2D2D2D] font-medium">
-            Party Choice
+            Additional Guests
           </TableHead>
-          <TableHead className="text-[#2D2D2D] font-medium">Gender</TableHead>
           <TableHead className="text-[#2D2D2D] font-medium">
             Dietary Restrictions
           </TableHead>
@@ -57,7 +56,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
         {loading ? (
           <TableRow>
             <TableCell
-              colSpan={8}
+              colSpan={7}
               className="text-center py-8 text-muted-foreground"
             >
               Loading RSVPs...
@@ -66,7 +65,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
         ) : rsvps.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={8}
+              colSpan={7}
               className="text-center py-8 text-muted-foreground"
             >
               No RSVPs found
@@ -93,18 +92,18 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
                 </span>
               </TableCell>
               <TableCell>{rsvp.guest_count}</TableCell>
-              <TableCell>
-                {rsvp.party_choice !== "none" ? (
-                  <span className="px-2 py-1 rounded-full text-xs bg-[#D4B56A]/10 text-[#D4B56A]">
-                    {rsvp.party_choice.charAt(0).toUpperCase() +
-                      rsvp.party_choice.slice(1)}
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell>
-                {rsvp.gender.charAt(0).toUpperCase() + rsvp.gender.slice(1)}
+              <TableCell className="max-w-[200px] truncate">
+                {Array.isArray(rsvp.additional_guests) &&
+                rsvp.additional_guests.length > 0
+                  ? rsvp.additional_guests
+                      .map(
+                        (guest) =>
+                          `${guest.full_name || guest.full_name} ${
+                            guest.surname
+                          }`
+                      )
+                      .join(", ")
+                  : "—"}
               </TableCell>
               <TableCell className="max-w-[150px] truncate">
                 {rsvp.dietary_restrictions || "—"}

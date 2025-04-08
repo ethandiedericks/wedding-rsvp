@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useRef } from "react";
+import type React from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { Heart, Mail, Lock, User } from "lucide-react";
 
 export default function SignIn() {
@@ -17,10 +19,44 @@ export default function SignIn() {
   const [fullName, setFullName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
+
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectedFrom = searchParams.get("redirectedFrom");
 
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
+
+  useEffect(() => {
+    // Check if user was redirected from a protected page
+    if (redirectedFrom) {
+      if (redirectedFrom === "/rsvp") {
+        setRedirectMessage("Please sign in to access the RSVP page");
+      } else if (redirectedFrom === "/admin") {
+        setRedirectMessage("Please sign in to access the admin dashboard");
+      } else {
+        setRedirectMessage(
+          `Please sign in to access the ${redirectedFrom.replace("/", "")} page`
+        );
+      }
+    }
+
+    // Check if user is already signed in
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        // If already signed in and was redirected, go back to that page
+        if (redirectedFrom) {
+          router.push(redirectedFrom);
+        }
+      }
+    };
+
+    checkSession();
+  }, [redirectedFrom, router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +81,18 @@ export default function SignIn() {
 
       toast.success("Signed in successfully!");
       await new Promise((resolve) => setTimeout(resolve, 500));
-      router.push(role === "admin" ? "/admin" : "/rsvp");
+
+      // If user was redirected from a protected page, send them back there
+      // But check if they're trying to access admin and don't have admin role
+      if (redirectedFrom) {
+        if (redirectedFrom.startsWith("/admin") && role !== "admin") {
+          router.push("/rsvp");
+        } else {
+          router.push(redirectedFrom);
+        }
+      } else {
+        router.push(role === "admin" ? "/admin" : "/rsvp");
+      }
     } catch (err: unknown) {
       console.error("Sign-in error:", err);
       toast.error(
@@ -100,6 +147,7 @@ export default function SignIn() {
       setPassword("");
       setConfirmPassword("");
       setFullName("");
+      setIsSignUp(false);
     } catch (err: unknown) {
       console.error("Sign-up error:", err);
       toast.error(
@@ -152,8 +200,19 @@ export default function SignIn() {
         <p className="text-muted-foreground">
           {isSignUp
             ? "Create an account to RSVP to our special day"
-            : "Please sign in to continue"}
+            : "Sign in to manage your RSVP and view wedding details"}
         </p>
+
+        {redirectMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="mt-4 p-3 bg-[#D4B56A]/10 text-[#D4B56A] rounded-md border border-[#D4B56A]/20"
+          >
+            {redirectMessage}
+          </motion.div>
+        )}
       </motion.div>
 
       <motion.div

@@ -6,7 +6,7 @@ import BridalCrewSection from "@/components/home/BridalCrewSection";
 
 export default function Home() {
   const weddingDetails = {
-    date: "June 1, 2025",
+    date: "Dec 12, 2025",
     time: "6:00 PM",
     venue: "Rosewood Gardens",
     address: "123 Blossom Lane, Meadowville",

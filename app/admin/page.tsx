@@ -32,22 +32,19 @@ import {
   Search,
   Download,
 } from "lucide-react";
-
-// Define types in separate file and import them
-import type {
-  RSVP,
-  Gift as GiftType,
-  CrewMember,
-  Profile,
-} from "@/types/admin";
-
-// Extract components to separate files
 import StatsCard from "@/components/admin/StatsCard";
 import RSVPTable from "@/components/admin/RSVPTable";
 import GiftForm from "@/components/admin/GiftForm";
 import CrewForm from "@/components/admin/CrewForm";
 import EditRSVPForm from "@/components/admin/EditRSVPForm";
 import { Input } from "@/components/ui/input";
+
+import type {
+  RSVP,
+  Gift as GiftType,
+  CrewMember,
+  Profile,
+} from "@/types/admin";
 
 export default function AdminDashboard() {
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
@@ -75,13 +72,18 @@ export default function AdminDashboard() {
       setFilteredRsvps(
         rsvps.filter((rsvp) => {
           const name = profiles[rsvp.id] || "";
+          const additionalGuestsString =
+            rsvp.additional_guests
+              ?.map((guest) => `${guest.full_name} ${guest.surname}`)
+              .join(", ")
+              .toLowerCase() || "";
           return (
             name.toLowerCase().includes(lowercasedSearch) ||
             rsvp.dietary_restrictions
               ?.toLowerCase()
               .includes(lowercasedSearch) ||
             rsvp.song_request?.toLowerCase().includes(lowercasedSearch) ||
-            rsvp.party_choice.toLowerCase().includes(lowercasedSearch)
+            additionalGuestsString.includes(lowercasedSearch)
           );
         })
       );
@@ -116,10 +118,9 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    // Fetch all data in parallel
     const [rsvpResult, giftResult, crewResult, profileResult] =
       await Promise.all([
-        supabase.from("rsvp").select("*"),
+        supabase.from("rsvp").select("*, additional_guests"),
         supabase
           .from("gifts")
           .select("id, name, available, claimed_by, image_url"),
@@ -131,8 +132,12 @@ export default function AdminDashboard() {
 
     if (rsvpResult.error) toast.error(rsvpResult.error.message);
     else {
-      setRsvps(rsvpResult.data || []);
-      setFilteredRsvps(rsvpResult.data || []);
+      const transformedRsvps = (rsvpResult.data || []).map((rsvp) => ({
+        ...rsvp,
+        additionalGuests: rsvp.additional_guests || [],
+      }));
+      setRsvps(transformedRsvps);
+      setFilteredRsvps(transformedRsvps);
     }
 
     if (giftResult.error) toast.error(giftResult.error.message);
@@ -177,7 +182,6 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteRSVP = async (rsvpId: string) => {
-    // First, check if this user has claimed any gifts
     const { data: claimedGifts, error: giftError } = await supabase
       .from("gifts")
       .select("id")
@@ -188,10 +192,8 @@ export default function AdminDashboard() {
       return;
     }
 
-    // If they claimed any gifts, make them available again
     if (claimedGifts && claimedGifts.length > 0) {
       const giftIds = claimedGifts.map((gift) => gift.id);
-
       const { error: updateError } = await supabase
         .from("gifts")
         .update({ available: true, claimed_by: null })
@@ -203,7 +205,6 @@ export default function AdminDashboard() {
       }
     }
 
-    // Now delete the RSVP
     const { error } = await supabase.from("rsvp").delete().eq("id", rsvpId);
     if (error) toast.error(error.message);
     else {
@@ -213,19 +214,21 @@ export default function AdminDashboard() {
   };
 
   const exportToCSV = () => {
-    // Create CSV content
     let csvContent =
-      "Name,Attending,Guests,Party Choice,Gender,Dietary Restrictions,Song Request\n";
+      "Name,Attending,Guests,Additional Guests,Dietary Restrictions,Song Request\n";
 
     rsvps.forEach((rsvp) => {
       const name = profiles[rsvp.id] || "Unknown";
       const attending = rsvp.attending ? "Yes" : "No";
+      const additional_guests =
+        rsvp.additional_guests
+          ?.map((guest) => `${guest.full_name} ${guest.surname}`)
+          .join("; ") || "None";
       const row = [
         name,
         attending,
         rsvp.guest_count,
-        rsvp.party_choice,
-        rsvp.gender,
+        additional_guests,
         rsvp.dietary_restrictions || "None",
         rsvp.song_request || "None",
       ]
@@ -235,7 +238,6 @@ export default function AdminDashboard() {
       csvContent += row + "\n";
     });
 
-    // Create download link
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -246,7 +248,6 @@ export default function AdminDashboard() {
     document.body.removeChild(link);
   };
 
-  // Calculate stats once
   const totalRSVPs = rsvps.length;
   const attendingCount = rsvps.filter((rsvp) => rsvp.attending).length;
   const totalGuests = rsvps.reduce((sum, rsvp) => sum + rsvp.guest_count, 0);
@@ -374,7 +375,6 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  {/* Pass the Dialog into RSVPTable or handle it here */}
                   <Dialog
                     open={!!editRSVP}
                     onOpenChange={(open) => !open && setEditRSVP(null)}
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                     <RSVPTable
                       rsvps={filteredRsvps}
                       profiles={profiles}
-                      onEdit={(rsvp) => setEditRSVP(rsvp)} // This sets the RSVP to edit and opens the dialog
+                      onEdit={(rsvp) => setEditRSVP(rsvp)}
                       onDelete={handleDeleteRSVP}
                       loading={loading}
                     />
@@ -398,13 +398,17 @@ export default function AdminDashboard() {
                           onSubmit={async (updatedRSVP) => {
                             const { error } = await supabase
                               .from("rsvp")
-                              .update(updatedRSVP)
+                              .update({
+                                ...updatedRSVP,
+                                additional_guests:
+                                  updatedRSVP.additional_guests,
+                              })
                               .eq("id", updatedRSVP.id);
 
                             if (error) toast.error(error.message);
                             else {
                               toast.success("RSVP updated successfully!");
-                              setEditRSVP(null); // Close the dialog
+                              setEditRSVP(null);
                               fetchData();
                             }
                           }}
