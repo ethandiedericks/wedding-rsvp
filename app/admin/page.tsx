@@ -99,7 +99,7 @@ export default function AdminDashboard() {
       const session = await getSession();
       
       if (!session) {
-        router.replace("/");
+        router.replace("/auth/signin");
         return;
       }
 
@@ -110,10 +110,12 @@ export default function AdminDashboard() {
         return;
       }
 
-      fetchData();
+      await fetchData();
     } catch (error) {
-      toast.error("Authentication failed");
-      router.replace("/");
+      console.error("Auth error:", error);
+      router.replace("/auth/signin");
+    } finally {
+      setLoading(false);
     }
   };
 
