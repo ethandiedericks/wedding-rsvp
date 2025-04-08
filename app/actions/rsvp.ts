@@ -2,6 +2,16 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+
+export async function getRSVPs() {
+  const { data, error } = await supabaseServer()
+    .from("rsvp")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return data
+}
 import { supabaseServer } from "@/lib/supabase"
 import type { RSVP } from "@/types/admin"
 

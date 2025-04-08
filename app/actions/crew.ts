@@ -2,6 +2,16 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+
+export async function getCrewMembers() {
+  const { data, error } = await supabaseServer()
+    .from("bridal_crew")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return data
+}
 import { supabaseServer } from "@/lib/supabase"
 
 export async function addCrewMember(formData: FormData) {
