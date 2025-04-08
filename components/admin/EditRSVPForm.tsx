@@ -33,7 +33,7 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
     if (newGuest.full_name.trim() && newGuest.surname.trim()) {
       setEditedRSVP({
         ...editedRSVP,
-        additional_guests: [...editedRSVP.additional_guests, newGuest],
+        additional_guests: [...(editedRSVP.additional_guests || []), newGuest],
       });
       setNewGuest({ full_name: "", surname: "" });
     }
@@ -53,7 +53,7 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
     field: "full_name" | "surname",
     value: string
   ) => {
-    const updatedGuests = [...editedRSVP.additional_guests];
+    const updatedGuests = [...(editedRSVP.additional_guests || [])];
     updatedGuests[index] = { ...updatedGuests[index], [field]: value };
     setEditedRSVP({ ...editedRSVP, additional_guests: updatedGuests });
   };
