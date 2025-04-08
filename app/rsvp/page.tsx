@@ -118,103 +118,45 @@ export default function RSVP() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      toast.error("You must be logged in to RSVP");
-      router.replace("/");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!formData.fullName || formData.attending === null) {
-      toast.error("Please complete all required fields");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Validate additional guests if attending with others
-    if (formData.attending && formData.guestCount > 1) {
-      if (formData.additional_guests.length < formData.guestCount - 1) {
-        toast.error("Please provide details for all additional guests");
-        setIsSubmitting(false);
+    try {
+      if (!formData.fullName || formData.attending === null) {
+        toast.error("Please complete all required fields");
         return;
       }
 
-      for (const guest of formData.additional_guests) {
-        if (!guest.full_name || !guest.surname) {
-          toast.error("Please complete all guest details");
-          setIsSubmitting(false);
+      // Validate additional guests if attending with others
+      if (formData.attending && formData.guestCount > 1) {
+        if (formData.additional_guests.length < formData.guestCount - 1) {
+          toast.error("Please provide details for all additional guests");
           return;
         }
+
+        for (const guest of formData.additional_guests) {
+          if (!guest.full_name || !guest.surname) {
+            toast.error("Please complete all guest details");
+            return;
+          }
+        }
       }
-    }
 
-    if (formData.selectedGift) {
-      const { data: giftCheck, error: giftCheckError } = await supabase
-        .from("gifts")
-        .select("available")
-        .eq("id", formData.selectedGift)
-        .single();
-
-      if (giftCheckError || !giftCheck?.available) {
-        toast.error("This gift is no longer available");
-        fetchGifts();
-        setIsSubmitting(false);
-        return;
+      const submitFormData = new FormData();
+      submitFormData.append("attending", formData.attending.toString());
+      submitFormData.append("guestCount", formData.guestCount.toString());
+      submitFormData.append("additionalGuests", JSON.stringify(formData.additional_guests));
+      submitFormData.append("dietaryRestrictions", formData.dietaryRestrictions);
+      submitFormData.append("songRequest", formData.songRequest);
+      if (formData.selectedGift) {
+        submitFormData.append("selectedGift", formData.selectedGift.toString());
       }
-    }
 
-    const { error: rsvpError } = await supabase.from("rsvp").upsert({
-      id: session.user.id,
-      attending: formData.attending,
-      guest_count: formData.attending ? formData.guestCount : 0,
-      additional_guests:
-        formData.additional_guests.length > 0
-          ? formData.additional_guests.map((guest) => ({
-              full_name: guest.full_name,
-              surname: guest.surname,
-            }))
-          : null,
-      dietary_restrictions: formData.dietaryRestrictions || null,
-      song_request: formData.songRequest || null,
-    });
-
-    if (rsvpError) {
-      toast.error(rsvpError.message);
+      const result = await submitRSVP(submitFormData);
+      toast.success(result.message);
+      setHasSubmitted(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit RSVP");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    if (formData.selectedGift) {
-      const { error: giftError } = await supabase
-        .from("gifts")
-        .update({ available: false, claimed_by: session.user.id })
-        .eq("id", formData.selectedGift)
-        .eq("available", true);
-
-      if (giftError) {
-        toast.error("Failed to claim gift: " + giftError.message);
-        setIsSubmitting(false);
-        return;
-      }
-      fetchGifts();
-    }
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ full_name: formData.fullName })
-      .eq("id", session.user.id);
-
-    if (profileError) {
-      toast.error("Failed to update profile: " + profileError.message);
-    }
-
-    setIsSubmitting(false);
-    setHasSubmitted(true);
-    toast.success("RSVP submitted successfully!");
   };
 
   if (loading) {

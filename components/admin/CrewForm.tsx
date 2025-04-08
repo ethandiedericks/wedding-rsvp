@@ -24,56 +24,31 @@ const CrewForm: React.FC<CrewFormProps> = ({ onSubmit }) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!newCrewName || !newCrewRole) {
-      toast.error("Please enter a name and role for the crew member");
-      setIsLoading(false);
-      return;
-    }
-
-    let headshot_url = null;
-
-    if (newCrewHeadshot) {
-      try {
-        const { data, error } = await supabase.storage
-          .from("crew-headshots")
-          .upload(`${Date.now()}-${newCrewHeadshot.name}`, newCrewHeadshot);
-
-        if (error) {
-          toast.error("Failed to upload headshot: " + error.message);
-          setIsLoading(false);
-          return;
-        }
-
-        headshot_url = supabase.storage
-          .from("crew-headshots")
-          .getPublicUrl(data.path).data.publicUrl;
-      } catch (error) {
-        toast.error("Failed to upload headshot");
-        setIsLoading(false);
+    try {
+      if (!newCrewName || !newCrewRole) {
+        toast.error("Please enter a name and role for the crew member");
         return;
       }
-    }
 
-    try {
-      const { error } = await supabase.from("bridal_crew").insert({
-        name: newCrewName,
-        role: newCrewRole,
-        headshot_url,
-        quote: newCrewQuote || null,
-      });
-
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("Crew member added successfully!");
-        setNewCrewName("");
-        setNewCrewRole("");
-        setNewCrewHeadshot(null);
-        setNewCrewQuote("");
-        onSubmit();
+      const formData = new FormData();
+      formData.append("name", newCrewName);
+      formData.append("role", newCrewRole);
+      if (newCrewHeadshot) {
+        formData.append("headshot", newCrewHeadshot);
       }
+      if (newCrewQuote) {
+        formData.append("quote", newCrewQuote);
+      }
+
+      const result = await addCrewMember(formData);
+      toast.success(result.message);
+      setNewCrewName("");
+      setNewCrewRole("");
+      setNewCrewHeadshot(null);
+      setNewCrewQuote("");
+      onSubmit();
     } catch (error) {
-      toast.error("Failed to add crew member");
+      toast.error(error instanceof Error ? error.message : "Failed to add crew member");
     } finally {
       setIsLoading(false);
     }

@@ -19,11 +19,18 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [newGuest, setNewGuest] = useState({ full_name: "", surname: "" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Map additionalGuests to additional_guests for Supabase
-    onSubmit(editedRSVP); // Cast back to RSVP type
+    try {
+      const result = await updateRSVP(editedRSVP);
+      toast.success(result.message);
+      onSubmit(editedRSVP);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update RSVP");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const addGuest = () => {
