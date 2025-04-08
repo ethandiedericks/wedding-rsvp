@@ -38,37 +38,32 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // If no session and trying to access protected route, redirect to sign-in
-  if (!session) {
-    if (!publicPaths.includes(request.nextUrl.pathname)) {
-      const redirectUrl = new URL("/auth/signin", request.url)
-      redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname)
-      return NextResponse.redirect(redirectUrl)
-    }
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
+  // Handle session check
+  if (!session && !publicPaths.includes(request.nextUrl.pathname)) {
+    const redirectUrl = new URL("/auth/signin", request.url)
+    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // For authenticated users, check role for admin access
-  if (session) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", session.user.id)
-      .single()
+  // Only check role for protected routes when session exists
+  if (session && request.nextUrl.pathname.startsWith("/admin")) {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .single()
 
-    const role = profile?.role || "guest"
+      const role = profile?.role || "guest"
+      requestHeaders.set("x-user-role", role)
 
-    // Redirect non-admin users trying to access admin pages
-    if (request.nextUrl.pathname.startsWith("/admin") && role !== "admin") {
-      return NextResponse.redirect(new URL("/", request.url))
+      if (role !== "admin") {
+        return NextResponse.redirect(new URL("/", request.url))
+      }
+    } catch (error) {
+      console.error("Error fetching role:", error)
+      return NextResponse.redirect(new URL("/auth/signin", request.url))
     }
-
-    // Add role to request header for use in pages
-    requestHeaders.set("x-user-role", role)
   }
 
   return NextResponse.next({
