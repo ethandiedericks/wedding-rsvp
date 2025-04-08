@@ -6,16 +6,13 @@ import { cookies } from 'next/headers'
 import { supabaseServer } from "@/lib/supabase"
 
 export async function getSession() {
-  const cookieStore = cookies()
   const supabase = supabaseServer()
-  
   const { data: { session }, error } = await supabase.auth.getSession()
   if (error) throw error
   return session
 }
 
 export async function signIn(email: string, password: string) {
-  const cookieStore = cookies()
   const supabase = supabaseServer()
   
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -33,5 +30,7 @@ export async function signIn(email: string, password: string) {
     .single()
 
   if (profileError) throw profileError
-  return { user: data.user, role: profileData?.role }
+  
+  revalidatePath('/', 'layout')
+  return { user: data.user, role: profileData?.role || 'guest' }
 }

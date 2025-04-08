@@ -66,6 +66,32 @@ export default function AdminDashboard() {
   const isInView = useInView(ref, { once: true, amount: 0.1 });
 
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        setLoading(true);
+        const session = await getSession();
+
+        if (!session) {
+          router.replace("/auth/signin");
+          return;
+        }
+
+        const profile = await getProfile(session.user.id);
+
+        if (!profile || profile.role !== "admin") {
+          router.replace("/");
+          return;
+        }
+
+        await fetchData();
+      } catch (error) {
+        console.error("Auth error:", error);
+        router.replace("/auth/signin");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     checkAuth();
   }, [router]);
 
@@ -95,36 +121,6 @@ export default function AdminDashboard() {
     }
   }, [searchTerm, rsvps, profiles]);
 
-  const checkAuth = async () => {
-    try {
-      setLoading(true);
-      const session = await getSession();
-      
-      if (!session) {
-        router.replace("/auth/signin");
-        return;
-      }
-
-      const profile = await getProfile(session.user.id);
-      
-      if (!profile || profile.role !== "admin") {
-        router.replace("/rsvp");
-        return;
-      }
-
-      await fetchData();
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Auth error:", error.message);
-      } else {
-        console.error("Auth error:", error);
-      }
-      router.replace("/auth/signin");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -139,7 +135,7 @@ export default function AdminDashboard() {
       setFilteredRsvps(rsvpsData);
       setGifts(giftsData);
       setCrew(crewData);
-      
+
       const profileMap = profilesData.reduce((acc, profile: Profile) => {
         acc[profile.id] = profile.full_name || "Unknown";
         return acc;
@@ -149,6 +145,7 @@ export default function AdminDashboard() {
       toast.error("Failed to fetch data");
     } finally {
       setLoading(false);
+    }
   };
 
   const handleDeleteGift = async (giftId: number) => {

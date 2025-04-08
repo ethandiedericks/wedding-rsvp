@@ -80,18 +80,12 @@ export default function SignIn() {
       console.log("Sign-in successful, redirecting with role:", role);
 
       toast.success("Signed in successfully!");
-      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // If user was redirected from a protected page, send them back there
-      // But check if they're trying to access admin and don't have admin role
-      if (redirectedFrom) {
-        if (redirectedFrom.startsWith("/admin") && role !== "admin") {
-          router.push("/rsvp");
-        } else {
-          router.push(redirectedFrom);
-        }
+      // Always redirect admin users to admin page, others to home
+      if (role === "admin") {
+        router.push("/admin");
       } else {
-        router.push(role === "admin" ? "/admin" : "/rsvp");
+        router.push("/");
       }
     } catch (err: unknown) {
       console.error("Sign-in error:", err);
