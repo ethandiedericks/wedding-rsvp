@@ -132,10 +132,7 @@ export default function AdminDashboard() {
 
     if (rsvpResult.error) toast.error(rsvpResult.error.message);
     else {
-      const transformedRsvps = (rsvpResult.data || []).map((rsvp) => ({
-        ...rsvp,
-        additionalGuests: rsvp.additional_guests || [],
-      }));
+      const transformedRsvps = rsvpResult.data || [];
       setRsvps(transformedRsvps);
       setFilteredRsvps(transformedRsvps);
     }

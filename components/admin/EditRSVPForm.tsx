@@ -23,10 +23,7 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
     e.preventDefault();
     setIsLoading(true);
     // Map additionalGuests to additional_guests for Supabase
-    const updatedRSVPForSupabase = {
-      ...editedRSVP,
-    };
-    onSubmit(updatedRSVPForSupabase as RSVP); // Cast back to RSVP type
+    onSubmit(editedRSVP); // Cast back to RSVP type
   };
 
   const addGuest = () => {
