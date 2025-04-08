@@ -46,6 +46,25 @@ export async function addGift(formData: FormData) {
   return { message: "Gift added successfully" }
 }
 
+export async function getGifts() {
+  const { data, error } = await supabaseServer()
+    .from("gifts")
+    .select("*")
+    
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function getAvailableGifts() {
+  const { data, error } = await supabaseServer()
+    .from("gifts")
+    .select("id, name, available")
+    .eq("available", true)
+    
+  if (error) throw new Error(error.message)
+  return data
+}
+
 export async function deleteGift(giftId: number) {
   const { error } = await supabaseServer()
     .from("gifts")

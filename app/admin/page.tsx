@@ -94,70 +94,53 @@ export default function AdminDashboard() {
   }, [searchTerm, rsvps, profiles]);
 
   const checkAuth = async () => {
-    setLoading(true);
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+    try {
+      setLoading(true);
+      const session = await getSession();
+      
+      if (!session) {
+        router.replace("/");
+        return;
+      }
 
-    if (sessionError || !session) {
+      const profile = await getProfile(session.user.id);
+      
+      if (!profile || profile.role !== "admin") {
+        router.replace("/rsvp");
+        return;
+      }
+
+      fetchData();
+    } catch (error) {
+      toast.error("Authentication failed");
       router.replace("/");
-      return;
     }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role, full_name")
-      .eq("id", session.user.id)
-      .single();
-
-    if (profileError || profile?.role !== "admin") {
-      router.replace("/rsvp");
-      return;
-    }
-
-    fetchData();
   };
 
   const fetchData = async () => {
-    setLoading(true);
-    const [rsvpResult, giftResult, crewResult, profileResult] =
-      await Promise.all([
-        supabase.from("rsvp").select("*, additional_guests"),
-        supabase
-          .from("gifts")
-          .select("id, name, available, claimed_by, image_url"),
-        supabase
-          .from("bridal_crew")
-          .select("id, name, role, headshot_url, quote"),
-        supabase.from("profiles").select("id, full_name"),
+    try {
+      setLoading(true);
+      const [rsvpsData, giftsData, crewData, profilesData] = await Promise.all([
+        getRSVPs(),
+        getGifts(),
+        getCrewMembers(),
+        getProfiles(),
       ]);
 
-    if (rsvpResult.error) toast.error(rsvpResult.error.message);
-    else {
-      const transformedRsvps = rsvpResult.data || [];
-      setRsvps(transformedRsvps);
-      setFilteredRsvps(transformedRsvps);
-    }
-
-    if (giftResult.error) toast.error(giftResult.error.message);
-    else setGifts(giftResult.data || []);
-
-    if (crewResult.error) toast.error(crewResult.error.message);
-    else setCrew(crewResult.data || []);
-
-    if (profileResult.error) toast.error(profileResult.error.message);
-    else {
-      const profileMap = (profileResult.data || []).reduce(
-        (acc, profile: Profile) => {
-          acc[profile.id] = profile.full_name || "Unknown";
-          return acc;
-        },
-        {} as Record<string, string>
-      );
+      setRsvps(rsvpsData);
+      setFilteredRsvps(rsvpsData);
+      setGifts(giftsData);
+      setCrew(crewData);
+      
+      const profileMap = profilesData.reduce((acc, profile: Profile) => {
+        acc[profile.id] = profile.full_name || "Unknown";
+        return acc;
+      }, {} as Record<string, string>);
       setProfiles(profileMap);
-    }
-    setLoading(false);
+    } catch (error) {
+      toast.error("Failed to fetch data");
+    } finally {
+      setLoading(false);
   };
 
   const handleDeleteGift = async (giftId: number) => {
