@@ -66,6 +66,8 @@ export default function AdminDashboard() {
   const isInView = useInView(ref, { once: true, amount: 0.1 });
 
   useEffect(() => {
+    let mounted = true;
+    
     const checkAuth = async () => {
       try {
         setLoading(true);
@@ -83,16 +85,26 @@ export default function AdminDashboard() {
           return;
         }
 
-        await fetchData();
+        if (mounted) {
+          await fetchData();
+        }
       } catch (error) {
         console.error("Auth error:", error);
-        router.replace("/auth/signin");
+        if (mounted) {
+          router.replace("/auth/signin");
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkAuth();
+    
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   useEffect(() => {

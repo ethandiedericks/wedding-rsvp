@@ -38,25 +38,37 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // If no session, redirect to sign-in page
+  // If no session and trying to access protected route, redirect to sign-in
   if (!session) {
-    const redirectUrl = new URL("/auth/signin", request.url)
-    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+    if (!publicPaths.includes(request.nextUrl.pathname)) {
+      const redirectUrl = new URL("/auth/signin", request.url)
+      redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    })
   }
 
-  // Check user role for admin access
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", session.user.id)
-    .single()
+  // For authenticated users, check role for admin access
+  if (session) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single()
 
-  const role = profile?.role || "guest"
+    const role = profile?.role || "guest"
 
-  // Redirect non-admin users trying to access admin pages
-  if (request.nextUrl.pathname.startsWith("/admin") && role !== "admin") {
-    return NextResponse.redirect(new URL("/rsvp", request.url))
+    // Redirect non-admin users trying to access admin pages
+    if (request.nextUrl.pathname.startsWith("/admin") && role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url))
+    }
+
+    // Add role to request header for use in pages
+    requestHeaders.set("x-user-role", role)
   }
 
   return NextResponse.next({
