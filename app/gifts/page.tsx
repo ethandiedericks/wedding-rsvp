@@ -3,12 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Heart, Gift, Filter, Search } from "lucide-react";
@@ -241,26 +236,6 @@ export default function GiftRegistry() {
                       />
                     </div>
                   </CardContent>
-
-                  <CardFooter className="p-4 pt-0">
-                    {!gift.available && gift.claimed_by && (
-                      <div className="text-sm text-muted-foreground italic">
-                        This gift has been reserved
-                      </div>
-                    )}
-
-                    {gift.available && (
-                      <Button
-                        className="w-full bg-[#D4B56A] hover:bg-[#C4A55A] text-white"
-                        onClick={() => {
-                          // This would typically open a modal or redirect to a reservation page
-                          alert("Gift reservation functionality would go here");
-                        }}
-                      >
-                        Reserve This Gift
-                      </Button>
-                    )}
-                  </CardFooter>
                 </Card>
               </motion.div>
             ))}
