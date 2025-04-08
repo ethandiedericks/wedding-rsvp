@@ -5,9 +5,9 @@ import { motion, useInView } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { getSession } from "@/app/actions/auth";
 import { getProfile, getProfiles } from "@/app/actions/profile";
-import { deleteRSVP } from "@/app/actions/rsvp";
+import { deleteRSVP, getRSVPs } from "@/app/actions/rsvp";
 import { deleteGift, getGifts } from "@/app/actions/gifts";
-import { deleteCrewMember } from "@/app/actions/crew";
+import { deleteCrewMember, getCrewMembers } from "@/app/actions/crew";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     let mounted = true;
-    
+
     const checkAuth = async () => {
       try {
         setLoading(true);
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
     };
 
     checkAuth();
-    
+
     return () => {
       mounted = false;
     };
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
             rsvp.song_request?.toLowerCase().includes(lowercasedSearch) ||
             additionalGuestsString.includes(lowercasedSearch)
           );
-        })
+        }),
       );
     }
   }, [searchTerm, rsvps, profiles]);
@@ -148,10 +148,13 @@ export default function AdminDashboard() {
       setGifts(giftsData);
       setCrew(crewData);
 
-      const profileMap = profilesData.reduce((acc, profile: Profile) => {
-        acc[profile.id] = profile.full_name || "Unknown";
-        return acc;
-      }, {} as Record<string, string>);
+      const profileMap = profilesData.reduce(
+        (acc, profile: Profile) => {
+          acc[profile.id] = profile.full_name || "Unknown";
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
       setProfiles(profileMap);
     } catch (error) {
       toast.error("Failed to fetch data");
@@ -166,7 +169,9 @@ export default function AdminDashboard() {
       toast.success(result.message);
       fetchData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete gift");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete gift",
+      );
     }
   };
 
@@ -176,7 +181,9 @@ export default function AdminDashboard() {
       toast.success(result.message);
       fetchData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete crew member");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete crew member",
+      );
     }
   };
 
@@ -186,7 +193,9 @@ export default function AdminDashboard() {
       toast.success(result.message);
       fetchData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete RSVP");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete RSVP",
+      );
     }
   };
 
