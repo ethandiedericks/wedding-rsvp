@@ -187,11 +187,15 @@ export default function AttendanceStep({
                   <SelectValue placeholder="Select number of guests" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[...Array(6)].map((_, i) => (
-                    <SelectItem key={i} value={i.toString()}>
-                      {i} {i === 1 ? "person" : "people"}
-                    </SelectItem>
-                  ))}
+                  {[...Array(6)].map((_, i) => {
+                    // Start from 1 instead of 0
+                    const count = i + 1;
+                    return (
+                      <SelectItem key={i} value={count.toString()}>
+                        {count} {count === 1 ? "person" : "people"}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

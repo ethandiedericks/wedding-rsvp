@@ -39,7 +39,7 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
   const removeGuest = (index: number) => {
     setEditedRSVP({
       ...editedRSVP,
-      additional_guests: editedRSVP.additional_guests.filter(
+      additional_guests: (editedRSVP.additional_guests || []).filter(
         (_, i) => i !== index
       ),
     });
@@ -93,7 +93,7 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
 
       <div className="space-y-4">
         <Label>Additional Guests</Label>
-        {editedRSVP.additional_guests.map((guest, index) => (
+        {(editedRSVP.additional_guests || []).map((guest, index) => (
           <div key={index} className="flex items-center gap-2">
             <Input
               value={guest.full_name}
@@ -158,6 +158,23 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
           }
           className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
         />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="halaal_preference"
+          checked={editedRSVP.halaal_preference}
+          onCheckedChange={(checked) =>
+            setEditedRSVP({
+              ...editedRSVP,
+              halaal_preference: !!checked,
+            })
+          }
+          className="border-[#D4B56A]/30 data-[state=checked]:bg-[#D4B56A] data-[state=checked]:border-[#D4B56A]"
+        />
+        <Label htmlFor="halaal_preference" className="cursor-pointer">
+          Prefers Halaal Food
+        </Label>
       </div>
 
       <div className="space-y-2">

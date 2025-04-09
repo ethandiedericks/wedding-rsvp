@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/table";
 import type { RSVP } from "@/types/admin";
 import { DialogTrigger } from "@/components/ui/dialog";
-import { Edit, Trash } from "lucide-react";
+import { Edit } from "lucide-react";
+import DeleteConfirmation from "./DeleteConfirmation";
 
 interface RSVPTableProps {
   rsvps: RSVP[];
@@ -29,6 +30,8 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
   onDelete,
   loading = false,
 }) => {
+
+
   return (
     <Table>
       <TableHeader className="bg-[#FDFBF7]">
@@ -47,6 +50,9 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
             Dietary Restrictions
           </TableHead>
           <TableHead className="text-[#2D2D2D] font-medium">
+            Halaal
+          </TableHead>
+          <TableHead className="text-[#2D2D2D] font-medium">
             Song Request
           </TableHead>
           <TableHead className="text-[#2D2D2D] font-medium">Actions</TableHead>
@@ -56,7 +62,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
         {loading ? (
           <TableRow>
             <TableCell
-              colSpan={7}
+              colSpan={8}
               className="text-center py-8 text-muted-foreground"
             >
               Loading RSVPs...
@@ -65,7 +71,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
         ) : rsvps.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={7}
+              colSpan={8}
               className="text-center py-8 text-muted-foreground"
             >
               No RSVPs found
@@ -78,7 +84,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
               className="border-b border-[#D4B56A]/10 hover:bg-[#FDFBF7]/50"
             >
               <TableCell className="font-medium">
-                {profiles[rsvp.id] || rsvp.id}
+                {profiles[rsvp.id] || "Unknown"}
               </TableCell>
               <TableCell>
                 <span
@@ -108,6 +114,13 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
               <TableCell className="max-w-[150px] truncate">
                 {rsvp.dietary_restrictions || "—"}
               </TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${rsvp.halaal_preference ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+                >
+                  {rsvp.halaal_preference ? "Yes" : "No"}
+                </span>
+              </TableCell>
               <TableCell className="max-w-[150px] truncate">
                 {rsvp.song_request || "—"}
               </TableCell>
@@ -122,14 +135,11 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
                     <Edit className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => onDelete(rsvp.id)}
-                  className="bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
+                <DeleteConfirmation
+                  itemType="RSVP"
+                  itemName={profiles[rsvp.id] || "Unknown"}
+                  onDelete={() => onDelete(rsvp.id)}
+                />
               </TableCell>
             </TableRow>
           ))

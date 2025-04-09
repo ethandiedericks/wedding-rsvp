@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -23,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Trash,
   Users,
   Check,
   Gift,
@@ -37,6 +35,7 @@ import RSVPTable from "@/components/admin/RSVPTable";
 import GiftForm from "@/components/admin/GiftForm";
 import CrewForm from "@/components/admin/CrewForm";
 import EditRSVPForm from "@/components/admin/EditRSVPForm";
+import DeleteConfirmation from "@/components/admin/DeleteConfirmation";
 import { Input } from "@/components/ui/input";
 
 import type {
@@ -46,28 +45,40 @@ import type {
   Profile,
 } from "@/types/admin";
 
+import { 
+  checkAuth,
+  deleteCrewMember,
+  deleteGift,
+  deleteRSVP,
+  fetchCrew,
+  fetchGifts,
+  fetchProfiles,
+  fetchRSVPs,
+  updateRSVP
+} from "@/app/actions/actions";
+
 export default function AdminDashboard() {
   const [rsvps, setRsvps] = useState<RSVP[]>([]);
   const [filteredRsvps, setFilteredRsvps] = useState<RSVP[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [gifts, setGifts] = useState<GiftType[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [searchTerm, setSearchTerm] = useState("");
   const [editRSVP, setEditRSVP] = useState<RSVP | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("rsvps");
+
   const router = useRouter();
 
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.1 });
 
   useEffect(() => {
-    checkAuth();
+    verifyAuth();
   }, [router]);
 
   useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredRsvps(rsvps);
-    } else {
+    if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
       setFilteredRsvps(
         rsvps.filter((rsvp) => {
@@ -75,77 +86,47 @@ export default function AdminDashboard() {
           const additionalGuestsString =
             rsvp.additional_guests
               ?.map((guest) => `${guest.full_name} ${guest.surname}`)
-              .join(", ")
-              .toLowerCase() || "";
+              .join(" ") || "";
           return (
             name.toLowerCase().includes(lowercasedSearch) ||
-            rsvp.dietary_restrictions
-              ?.toLowerCase()
-              .includes(lowercasedSearch) ||
-            rsvp.song_request?.toLowerCase().includes(lowercasedSearch) ||
-            additionalGuestsString.includes(lowercasedSearch)
+            additionalGuestsString.toLowerCase().includes(lowercasedSearch)
           );
         })
       );
+    } else {
+      setFilteredRsvps(rsvps);
     }
   }, [searchTerm, rsvps, profiles]);
 
-  const checkAuth = async () => {
+  const verifyAuth = async () => {
     setLoading(true);
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      router.replace("/");
-      return;
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role, full_name")
-      .eq("id", session.user.id)
-      .single();
-
-    if (profileError || profile?.role !== "admin") {
+    try {
+      await checkAuth();
+      fetchData();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
       router.replace("/rsvp");
-      return;
     }
-
-    fetchData();
   };
 
   const fetchData = async () => {
     setLoading(true);
-    const [rsvpResult, giftResult, crewResult, profileResult] =
-      await Promise.all([
-        supabase.from("rsvp").select("*, additional_guests"),
-        supabase
-          .from("gifts")
-          .select("id, name, available, claimed_by, image_url"),
-        supabase
-          .from("bridal_crew")
-          .select("id, name, role, headshot_url, quote"),
-        supabase.from("profiles").select("id, full_name"),
+    try {
+      const [rsvps, gifts, crew, profilesData] = await Promise.all([
+        fetchRSVPs(),
+        fetchGifts(),
+        fetchCrew(),
+        fetchProfiles(),
       ]);
 
-    if (rsvpResult.error) toast.error(rsvpResult.error.message);
-    else {
-      const transformedRsvps = rsvpResult.data || [];
-      setRsvps(transformedRsvps);
-      setFilteredRsvps(transformedRsvps);
-    }
+      setRsvps(rsvps);
+      setFilteredRsvps(rsvps);
+      setGifts(gifts);
+      setCrew(crew);
 
-    if (giftResult.error) toast.error(giftResult.error.message);
-    else setGifts(giftResult.data || []);
-
-    if (crewResult.error) toast.error(crewResult.error.message);
-    else setCrew(crewResult.data || []);
-
-    if (profileResult.error) toast.error(profileResult.error.message);
-    else {
-      const profileMap = (profileResult.data || []).reduce(
+      const profileMap = profilesData.reduce(
         (acc, profile: Profile) => {
           acc[profile.id] = profile.full_name || "Unknown";
           return acc;
@@ -153,60 +134,71 @@ export default function AdminDashboard() {
         {} as Record<string, string>
       );
       setProfiles(profileMap);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to fetch data");
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDeleteGift = async (giftId: number) => {
-    const { error } = await supabase.from("gifts").delete().eq("id", giftId);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deleteGift(giftId);
       toast.success("Gift deleted successfully!");
       fetchData();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete gift");
+      }
     }
   };
 
   const handleDeleteCrewMember = async (crewId: number) => {
-    const { error } = await supabase
-      .from("bridal_crew")
-      .delete()
-      .eq("id", crewId);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deleteCrewMember(crewId);
       toast.success("Crew member deleted successfully!");
       fetchData();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete crew member");
+      }
     }
   };
 
   const handleDeleteRSVP = async (rsvpId: string) => {
-    const { data: claimedGifts, error: giftError } = await supabase
-      .from("gifts")
-      .select("id")
-      .eq("claimed_by", rsvpId);
-
-    if (giftError) {
-      toast.error("Error checking claimed gifts: " + giftError.message);
-      return;
-    }
-
-    if (claimedGifts && claimedGifts.length > 0) {
-      const giftIds = claimedGifts.map((gift) => gift.id);
-      const { error: updateError } = await supabase
-        .from("gifts")
-        .update({ available: true, claimed_by: null })
-        .in("id", giftIds);
-
-      if (updateError) {
-        toast.error("Error releasing claimed gifts: " + updateError.message);
-        return;
-      }
-    }
-
-    const { error } = await supabase.from("rsvp").delete().eq("id", rsvpId);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deleteRSVP(rsvpId);
       toast.success("RSVP deleted successfully!");
       fetchData();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to delete RSVP");
+      }
+    }
+  };
+
+  const handleUpdateRSVP = async (updatedRSVP: RSVP) => {
+    try {
+      await updateRSVP(updatedRSVP);
+      toast.success("RSVP updated successfully!");
+      setEditRSVP(null);
+      fetchData();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to update RSVP");
+      }
     }
   };
 
@@ -220,19 +212,9 @@ export default function AdminDashboard() {
       const additional_guests =
         rsvp.additional_guests
           ?.map((guest) => `${guest.full_name} ${guest.surname}`)
-          .join("; ") || "None";
-      const row = [
-        name,
-        attending,
-        rsvp.guest_count,
-        additional_guests,
-        rsvp.dietary_restrictions || "None",
-        rsvp.song_request || "None",
-      ]
-        .map((cell) => `"${cell}"`)
-        .join(",");
+          .join(", ") || "";
 
-      csvContent += row + "\n";
+      csvContent += `"${name}","${attending}","${rsvp.guest_count}","${additional_guests}","${rsvp.dietary_restrictions || ""}","${rsvp.song_request || ""}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -363,18 +345,40 @@ export default function AdminDashboard() {
                   </div>
                   <Button
                     variant="outline"
-                    className="border-[#D4B56A]/30 text-[#D4B56A] hover:bg-[#D4B56A]/10 hover:text-[#D4B56A]"
-                    onClick={exportToCSV}
+                    className="flex items-center gap-2"
+                    onClick={() => {
+                      const csvContent =
+                        "data:text/csv;charset=utf-8," +
+                        "Name,Attending,Guest Count,Dietary Restrictions,Song Request\n" +
+                        filteredRsvps
+                          .map(
+                            (rsvp) =>
+                              `${profiles[rsvp.id] || "Unknown"},${rsvp.attending ? "Yes" : "No"},${rsvp.guest_count},"${rsvp.dietary_restrictions || ""}","${rsvp.song_request || ""}"`
+                          )
+                          .join("\n");
+
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", "rsvps.csv");
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export to CSV
+                    <Download size={18} />
+                    Export CSV
                   </Button>
                 </div>
 
                 <div className="overflow-x-auto">
                   <Dialog
                     open={!!editRSVP}
-                    onOpenChange={(open) => !open && setEditRSVP(null)}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setEditRSVP(null);
+                      }
+                    }}
                   >
                     <RSVPTable
                       rsvps={filteredRsvps}
@@ -389,28 +393,23 @@ export default function AdminDashboard() {
                           Edit RSVP
                         </DialogTitle>
                       </DialogHeader>
-                      {editRSVP && (
-                        <EditRSVPForm
-                          rsvp={editRSVP}
-                          onSubmit={async (updatedRSVP) => {
-                            const { error } = await supabase
-                              .from("rsvp")
-                              .update({
-                                ...updatedRSVP,
-                                additional_guests:
-                                  updatedRSVP.additional_guests,
-                              })
-                              .eq("id", updatedRSVP.id);
-
-                            if (error) toast.error(error.message);
-                            else {
-                              toast.success("RSVP updated successfully!");
-                              setEditRSVP(null);
-                              fetchData();
+                      <EditRSVPForm
+                        rsvp={editRSVP!}
+                        onSubmit={async (updatedRSVP) => {
+                          try {
+                            await updateRSVP(updatedRSVP);
+                            toast.success("RSVP updated successfully!");
+                            setEditRSVP(null);
+                            fetchData();
+                          } catch (error) {
+                            if (error instanceof Error) {
+                              toast.error(error.message);
+                            } else {
+                              toast.error("Failed to update RSVP");
                             }
-                          }}
-                        />
-                      )}
+                          }
+                        }}
+                      />
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -530,15 +529,12 @@ export default function AdminDashboard() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteGift(gift.id)}
+                                <DeleteConfirmation
+                                  itemType="Gift"
+                                  itemName={gift.name}
+                                  onDelete={() => handleDeleteGift(gift.id)}
                                   disabled={!gift.available}
-                                  className="bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900"
-                                >
-                                  <Trash className="h-4 w-4" />
-                                </Button>
+                                />
                               </TableCell>
                             </TableRow>
                           ))
@@ -658,16 +654,11 @@ export default function AdminDashboard() {
                                 {member.quote || "—"}
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleDeleteCrewMember(member.id)
-                                  }
-                                  className="bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900"
-                                >
-                                  <Trash className="h-4 w-4" />
-                                </Button>
+                                <DeleteConfirmation
+                                  itemType="Crew Member"
+                                  itemName={member.name}
+                                  onDelete={() => handleDeleteCrewMember(member.id)}
+                                />
                               </TableCell>
                             </TableRow>
                           ))

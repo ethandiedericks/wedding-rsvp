@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Heart, Gift, Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getAllGifts } from "@/app/actions/actions";
 
 interface GiftItem {
   id: number;
@@ -31,14 +31,15 @@ export default function GiftRegistry() {
 
   useEffect(() => {
     const fetchGifts = async () => {
-      const { data, error } = await supabase.from("gifts").select("*");
-      if (error) {
+      try {
+        const data = await getAllGifts();
+        setGifts(data);
+        setFilteredGifts(data);
+      } catch (error) {
         console.error("Error fetching gifts:", error);
-      } else {
-        setGifts(data || []);
-        setFilteredGifts(data || []);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchGifts();

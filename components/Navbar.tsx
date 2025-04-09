@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import { LogIn, LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useRouter, usePathname } from "next/navigation"; // Add usePathname
+import { useRouter, usePathname } from "next/navigation";
+import { getSession, getUserProfile, signOut } from "@/app/actions/actions";
+import { toast } from "sonner";
 
 export default function Navbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -25,41 +26,29 @@ export default function Navbar() {
   // Handle authentication
   useEffect(() => {
     const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const session = await getSession();
       setIsAuthenticated(!!session);
 
       if (session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-        setIsAdmin(profile?.role === "admin");
+        try {
+          const profile = await getUserProfile();
+          setIsAdmin(profile?.role === "admin");
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
       }
     };
 
     checkAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
-      if (session) {
-        supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single()
-          .then(({ data }) => setIsAdmin(data?.role === "admin"));
-      } else {
-        setIsAdmin(false);
-      }
-    });
+    // Set up an interval to periodically check auth status
+    const interval = setInterval(checkAuth, 5000);
 
-    return () => subscription.unsubscribe();
-  }, [router]);
+    return () => clearInterval(interval);
+  }, []);
 
   // Handle scroll effect
   useEffect(() => {
@@ -72,9 +61,19 @@ export default function Navbar() {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/auth/signin");
-    setIsOpen(false);
+    try {
+      await signOut();
+      router.push("/auth/signin");
+      setIsOpen(false);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to sign out");
+      }
+    }
   };
 
   // Determine if on homepage

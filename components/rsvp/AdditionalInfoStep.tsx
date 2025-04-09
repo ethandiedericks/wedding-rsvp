@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CardContent } from "@/components/ui/card";
 import type { FormData } from "@/lib/types";
 import { Label } from "@/components/ui/label";
-import { UtensilsCrossed, Music } from "lucide-react";
+import { UtensilsCrossed, Music, Check } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type AdditionalInfoStepProps = {
   formData: FormData;
@@ -28,6 +29,10 @@ export default function AdditionalInfoStep({
   ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData({ ...formData, halaalPreference: checked });
   };
 
   return (
@@ -65,6 +70,21 @@ export default function AdditionalInfoStep({
             <p className="text-xs text-muted-foreground">
               Let us know if you have any dietary requirements or allergies
             </p>
+          </div>
+
+          <div className="flex items-center space-x-2 pt-2 pb-2">
+            <Checkbox 
+              id="halaalPreference" 
+              checked={formData.halaalPreference}
+              onCheckedChange={handleCheckboxChange}
+              className="border-[#D4B56A] data-[state=checked]:bg-[#D4B56A] data-[state=checked]:text-white"
+            />
+            <Label 
+              htmlFor="halaalPreference" 
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              I prefer Halaal food options
+            </Label>
           </div>
 
           <div className="space-y-2">

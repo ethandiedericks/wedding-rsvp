@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import Image from "next/image";
+import { getBridalCrew } from "@/app/actions/actions";
 
 interface CrewMember {
   id: number;
@@ -53,12 +53,8 @@ export default function BridalCrewSection() {
   useEffect(() => {
     async function fetchCrewMembers() {
       try {
-        const { data, error: fetchError } = await supabase
-          .from("bridal_crew")
-          .select("*");
-
-        if (fetchError) throw new Error(fetchError.message);
-        setCrew(data || []);
+        const data = await getBridalCrew();
+        setCrew(data);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load bridal crew"

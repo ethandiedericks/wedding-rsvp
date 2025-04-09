@@ -5,9 +5,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { addCrewMember } from "@/app/actions/actions";
 
 interface CrewFormProps {
   onSubmit: () => void;
@@ -30,50 +30,20 @@ const CrewForm: React.FC<CrewFormProps> = ({ onSubmit }) => {
       return;
     }
 
-    let headshot_url = null;
-
-    if (newCrewHeadshot) {
-      try {
-        const { data, error } = await supabase.storage
-          .from("crew-headshots")
-          .upload(`${Date.now()}-${newCrewHeadshot.name}`, newCrewHeadshot);
-
-        if (error) {
-          toast.error("Failed to upload headshot: " + error.message);
-          setIsLoading(false);
-          return;
-        }
-
-        headshot_url = supabase.storage
-          .from("crew-headshots")
-          .getPublicUrl(data.path).data.publicUrl;
-      } catch (error) {
-        toast.error("Failed to upload headshot");
-        setIsLoading(false);
-        return;
-      }
-    }
-
     try {
-      const { error } = await supabase.from("bridal_crew").insert({
-        name: newCrewName,
-        role: newCrewRole,
-        headshot_url,
-        quote: newCrewQuote || null,
-      });
-
-      if (error) {
+      await addCrewMember(newCrewName, newCrewRole, newCrewHeadshot, newCrewQuote);
+      toast.success("Crew member added successfully!");
+      setNewCrewName("");
+      setNewCrewRole("");
+      setNewCrewHeadshot(null);
+      setNewCrewQuote("");
+      onSubmit();
+    } catch (error) {
+      if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.success("Crew member added successfully!");
-        setNewCrewName("");
-        setNewCrewRole("");
-        setNewCrewHeadshot(null);
-        setNewCrewQuote("");
-        onSubmit();
+        toast.error("Failed to add crew member");
       }
-    } catch (error) {
-      toast.error("Failed to add crew member");
     } finally {
       setIsLoading(false);
     }

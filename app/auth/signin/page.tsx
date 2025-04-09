@@ -4,13 +4,13 @@ import type React from "react";
 
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { supabase } from "@/lib/supabase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Heart, Mail, Lock, User } from "lucide-react";
+import { getSession, signIn, signUp } from "@/app/actions/actions";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -44,14 +44,16 @@ export default function SignIn() {
 
     // Check if user is already signed in
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        // If already signed in and was redirected, go back to that page
-        if (redirectedFrom) {
-          router.push(redirectedFrom);
+      try {
+        const session = await getSession();
+        if (session) {
+          // If already signed in and was redirected, go back to that page
+          if (redirectedFrom) {
+            router.push(redirectedFrom);
+          }
         }
+      } catch (error) {
+        // User is not signed in, which is expected on this page
       }
     };
 
@@ -63,20 +65,7 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw new Error(error.message);
-      if (!data.user) throw new Error("No user data returned");
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
-
-      const role = profileError ? "guest" : profileData?.role || "guest";
+      const { user, role } = await signIn(email, password);
       console.log("Sign-in successful, redirecting with role:", role);
 
       toast.success("Signed in successfully!");
@@ -122,31 +111,8 @@ export default function SignIn() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName, role: "guest" } },
-      });
-
-      if (error) throw new Error(error.message);
-      if (!data.user) throw new Error("No user data returned");
-
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: data.user.id,
-        full_name: fullName,
-        role: "guest",
-      });
-
-      if (profileError) throw new Error(profileError.message);
-
-      console.log("Sign-up successful, user:", data.user);
-      toast.success(
-        "Sign-up successful! Please check your email to confirm your account."
-      );
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-      setFullName("");
+      await signUp(email, password, fullName);
+      toast.success("Account created successfully! Please check your email.");
       setIsSignUp(false);
     } catch (err: unknown) {
       console.error("Sign-up error:", err);

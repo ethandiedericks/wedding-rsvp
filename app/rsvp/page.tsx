@@ -4,7 +4,6 @@ import type React from "react";
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import AdditionalInfoStep from "@/components/rsvp/AdditionalInfoStep";
 import SuccessMessage from "@/components/rsvp/SuccessMessage";
 import type { FormData, Gift } from "@/lib/types";
 import { Heart } from "lucide-react";
+import { checkExistingRSVP, getAvailableGifts, getUserProfile, submitRSVP } from "@/app/actions/actions";
 
 export default function RSVP() {
   const [step, setStep] = useState<number>(1);
@@ -23,11 +23,12 @@ export default function RSVP() {
     email: "",
     phone: "",
     attending: null,
-    guestCount: 0,
+    guestCount: 1, // Default to 1 person (the logged-in user)
     additional_guests: [], // This should be an array of { full_name: "", surname: "" } objects when guests are added
     selectedGift: null,
     dietaryRestrictions: "",
     songRequest: "",
+    halaalPreference: false,
   });
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,68 +39,62 @@ export default function RSVP() {
   useEffect(() => {
     const checkAuthAndLoad = async () => {
       setLoading(true);
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-      if (sessionError || !session) {
+      try {
+        // Check if user is authenticated and has an existing RSVP
+        const result = await checkExistingRSVP();
+        
+        // If not authenticated, redirect to login
+        if (result === null) {
+          router.replace("/auth/signin?redirectedFrom=/rsvp");
+          return;
+        }
+
+        const { profile, rsvp } = result;
+
+        // If user has already submitted an RSVP
+        if (rsvp) {
+          setHasSubmitted(true);
+          setLoading(false);
+          return;
+        }
+
+        // User is authenticated but hasn't submitted an RSVP yet
+        if (profile) {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: profile.full_name || "",
+            email: profile.email || "",
+          }));
+
+          // Load available gifts
+          fetchGifts();
+          setHasSubmitted(false);
+        } else {
+          // Profile not found
+          toast.error("Error loading profile");
+          router.replace("/");
+        }
+      } catch (error) {
+        console.error("Error in RSVP page:", error);
+        if (error instanceof Error) {
+          toast.error(error.message);
+        } else {
+          toast.error("An error occurred");
+        }
         router.replace("/");
-        return;
-      }
-
-      // Check if user has already submitted an RSVP
-      const { data: existingRSVP, error: rsvpError } = await supabase
-        .from("rsvp")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (rsvpError && rsvpError.code !== "PGRST116") {
-        // PGRST116 means no rows found
-        toast.error("Error checking RSVP status");
-        return;
-      }
-
-      if (existingRSVP) {
-        setHasSubmitted(true);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profileError) {
-        toast.error("Error loading profile");
-        router.replace("/");
-        return;
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        fullName: profileData?.full_name || "",
-        email: session.user.email || "",
-      }));
-
-      fetchGifts();
-      setHasSubmitted(false);
-      setLoading(false);
     };
     checkAuthAndLoad();
   }, [router]);
 
   const fetchGifts = async () => {
-    const { data, error } = await supabase
-      .from("gifts")
-      .select("id, name, available")
-      .eq("available", true);
-    if (error) {
+    try {
+      const gifts = await getAvailableGifts();
+      setGifts(gifts);
+    } catch (error) {
       toast.error("Error fetching gifts");
-    } else {
-      setGifts(data || []);
     }
   };
 
@@ -118,17 +113,6 @@ export default function RSVP() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      toast.error("You must be logged in to RSVP");
-      router.replace("/");
-      setIsSubmitting(false);
-      return;
-    }
-
     if (!formData.fullName || formData.attending === null) {
       toast.error("Please complete all required fields");
       setIsSubmitting(false);
@@ -136,85 +120,46 @@ export default function RSVP() {
     }
 
     // Validate additional guests if attending with others
-    if (formData.attending && formData.guestCount > 1) {
-      if (formData.additional_guests.length < formData.guestCount - 1) {
-        toast.error("Please provide details for all additional guests");
+    if (formData.attending && formData.guestCount > 1) { // Changed from guestCount > 0 to > 1
+      // The expected number of additional guests is guestCount - 1 (excluding the main attendee)
+      if (formData.additional_guests.length !== formData.guestCount - 1) {
+        console.log('Guest validation failed:', {
+          guestCount: formData.guestCount,
+          additionalGuestsLength: formData.additional_guests.length
+        });
+        toast.error(
+          "Please provide details for all additional guests or adjust the guest count"
+        );
         setIsSubmitting(false);
         return;
       }
 
-      for (const guest of formData.additional_guests) {
-        if (!guest.full_name || !guest.surname) {
-          toast.error("Please complete all guest details");
-          setIsSubmitting(false);
-          return;
-        }
-      }
-    }
-
-    if (formData.selectedGift) {
-      const { data: giftCheck, error: giftCheckError } = await supabase
-        .from("gifts")
-        .select("available")
-        .eq("id", formData.selectedGift)
-        .single();
-
-      if (giftCheckError || !giftCheck?.available) {
-        toast.error("This gift is no longer available");
-        fetchGifts();
+      const invalidGuests = formData.additional_guests.some(
+        (guest) => !guest.full_name || !guest.surname
+      );
+      if (invalidGuests) {
+        toast.error(
+          "Please provide both first name and surname for all guests"
+        );
         setIsSubmitting(false);
         return;
       }
     }
 
-    const { error: rsvpError } = await supabase.from("rsvp").upsert({
-      id: session.user.id,
-      attending: formData.attending,
-      guest_count: formData.attending ? formData.guestCount : 0,
-      additional_guests:
-        formData.additional_guests.length > 0
-          ? formData.additional_guests.map((guest) => ({
-              full_name: guest.full_name,
-              surname: guest.surname,
-            }))
-          : null,
-      dietary_restrictions: formData.dietaryRestrictions || null,
-      song_request: formData.songRequest || null,
-    });
-
-    if (rsvpError) {
-      toast.error(rsvpError.message);
+    try {
+      await submitRSVP(formData);
+      fetchGifts(); // Refresh gift list in case one was claimed
       setIsSubmitting(false);
-      return;
-    }
-
-    if (formData.selectedGift) {
-      const { error: giftError } = await supabase
-        .from("gifts")
-        .update({ available: false, claimed_by: session.user.id })
-        .eq("id", formData.selectedGift)
-        .eq("available", true);
-
-      if (giftError) {
-        toast.error("Failed to claim gift: " + giftError.message);
-        setIsSubmitting(false);
-        return;
+      setHasSubmitted(true);
+      toast.success("RSVP submitted successfully!");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to submit RSVP");
       }
-      fetchGifts();
+      setIsSubmitting(false);
     }
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ full_name: formData.fullName })
-      .eq("id", session.user.id);
-
-    if (profileError) {
-      toast.error("Failed to update profile: " + profileError.message);
-    }
-
-    setIsSubmitting(false);
-    setHasSubmitted(true);
-    toast.success("RSVP submitted successfully!");
   };
 
   if (loading) {

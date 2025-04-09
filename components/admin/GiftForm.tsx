@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { addGift } from "@/app/actions/actions";
 
 interface GiftFormProps {
   onSubmit: () => void;
@@ -21,33 +22,23 @@ const GiftForm: React.FC<GiftFormProps> = ({ onSubmit }) => {
     setIsLoading(true);
 
     if (!newGiftName) {
-      toast.error("Please enter a gift name");
+      toast.error("Please enter a name for the gift");
       setIsLoading(false);
       return;
     }
 
-    const formData = new FormData();
-    formData.append("name", newGiftName);
-    if (newGiftImage) formData.append("image", newGiftImage);
-
     try {
-      const response = await fetch("/api/add-gift", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(result.error);
-      } else {
-        toast.success(result.message);
-        setNewGiftName("");
-        setNewGiftImage(null);
-        onSubmit();
-      }
+      await addGift(newGiftName, newGiftImage);
+      toast.success("Gift added successfully!");
+      setNewGiftName("");
+      setNewGiftImage(null);
+      onSubmit();
     } catch (error) {
-      toast.error("Failed to add gift");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to add gift");
+      }
     } finally {
       setIsLoading(false);
     }

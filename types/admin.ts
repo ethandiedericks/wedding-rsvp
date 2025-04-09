@@ -1,11 +1,16 @@
-export interface RSVP {
+export type RSVP = {
   id: string;
   attending: boolean;
   guest_count: number;
-  additional_guests: { full_name: string; surname: string }[]; // Changed from additionalGuests
+  additional_guests: { full_name: string; surname: string }[] | null;
   dietary_restrictions: string | null;
   song_request: string | null;
-}
+  halaal_preference: boolean;
+  created_at: string;
+  manual_entry?: boolean;
+  manual_name?: string;
+};
+
 export interface Gift {
   id: number;
   name: string;

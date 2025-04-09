@@ -9,6 +9,7 @@ export type FormData = {
   selectedGift: number | null
   dietaryRestrictions: string
   songRequest: string
+  halaalPreference: boolean
 }
 
 export type Gift = {
@@ -25,5 +26,6 @@ export type RSVPRecord = {
 
   dietary_restrictions: string | null
   song_request: string | null
+  halaal_preference: boolean
   created_at: string
 }
