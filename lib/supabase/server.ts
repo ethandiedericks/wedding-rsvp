@@ -23,6 +23,11 @@ export async function supabaseServer() {
           cookieStore.set({ name, value: '', ...options })
         },
       },
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false
+      }
     }
   )
 }

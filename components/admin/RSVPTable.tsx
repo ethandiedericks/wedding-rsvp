@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -23,13 +23,7 @@ interface RSVPTableProps {
   loading?: boolean;
 }
 
-const RSVPTable: React.FC<RSVPTableProps> = ({
-  rsvps,
-  profiles,
-  onEdit,
-  onDelete,
-  loading = false,
-}) => {
+const RSVPTable: React.FC<RSVPTableProps> = React.memo(({ rsvps, profiles, onEdit, onDelete, loading = false }) => {
 
 
   return (
@@ -46,9 +40,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
           <TableHead className="text-[#2D2D2D] font-medium">
             Additional Guests
           </TableHead>
-          <TableHead className="text-[#2D2D2D] font-medium">
-            Dietary Restrictions
-          </TableHead>
+
           <TableHead className="text-[#2D2D2D] font-medium">
             Halaal
           </TableHead>
@@ -62,7 +54,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
         {loading ? (
           <TableRow>
             <TableCell
-              colSpan={8}
+              colSpan={7}
               className="text-center py-8 text-muted-foreground"
             >
               Loading RSVPs...
@@ -71,7 +63,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
         ) : rsvps.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={8}
+              colSpan={7}
               className="text-center py-8 text-muted-foreground"
             >
               No RSVPs found
@@ -111,9 +103,7 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
                       .join(", ")
                   : "—"}
               </TableCell>
-              <TableCell className="max-w-[150px] truncate">
-                {rsvp.dietary_restrictions || "—"}
-              </TableCell>
+
               <TableCell>
                 <span
                   className={`px-2 py-1 rounded-full text-xs ${rsvp.halaal_preference ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
@@ -147,6 +137,6 @@ const RSVPTable: React.FC<RSVPTableProps> = ({
       </TableBody>
     </Table>
   );
-};
+});
 
 export default RSVPTable;

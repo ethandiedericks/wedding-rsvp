@@ -26,7 +26,7 @@ export default function RSVP() {
     guestCount: 1, // Default to 1 person (the logged-in user)
     additional_guests: [], // This should be an array of { full_name: "", surname: "" } objects when guests are added
     selectedGift: null,
-    dietaryRestrictions: "",
+
     songRequest: "",
     halaalPreference: false,
   });
@@ -65,9 +65,6 @@ export default function RSVP() {
             fullName: profile.full_name || "",
             email: profile.email || "",
           }));
-
-          // Load available gifts
-          fetchGifts();
           setHasSubmitted(false);
         } else {
           // Profile not found
@@ -89,14 +86,20 @@ export default function RSVP() {
     checkAuthAndLoad();
   }, [router]);
 
-  const fetchGifts = async () => {
-    try {
-      const gifts = await getAvailableGifts();
-      setGifts(gifts);
-    } catch (error) {
-      toast.error("Error fetching gifts");
-    }
-  };
+  // Only fetch gifts when we reach the gift selection step
+  useEffect(() => {
+    const fetchGifts = async () => {
+      if (step === 2 && formData.attending === true && gifts.length === 0) {
+        try {
+          const availableGifts = await getAvailableGifts();
+          setGifts(availableGifts);
+        } catch (error) {
+          toast.error("Error fetching gifts");
+        }
+      }
+    };
+    fetchGifts();
+  }, [step, formData.attending, gifts.length]);
 
   const handleStepChange = (newStep: number) => {
     // Skip the party selection step (step 3)
@@ -148,7 +151,9 @@ export default function RSVP() {
 
     try {
       await submitRSVP(formData);
-      fetchGifts(); // Refresh gift list in case one was claimed
+      // Refresh gift list in case one was claimed
+      const availableGifts = await getAvailableGifts();
+      setGifts(availableGifts);
       setIsSubmitting(false);
       setHasSubmitted(true);
       toast.success("RSVP submitted successfully!");

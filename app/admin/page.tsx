@@ -75,7 +75,44 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     verifyAuth();
+    // Initial data fetch for all tabs
+    const initialFetch = async () => {
+      try {
+        const [profilesData, rsvpsData, giftsData, crewData] = await Promise.all([
+          fetchProfiles(),
+          fetchRSVPs(),
+          fetchGifts(),
+          fetchCrew()
+        ]);
+
+        const profileMap = profilesData.reduce(
+          (acc, profile: Profile) => {
+            acc[profile.id] = profile.full_name || "Unknown";
+            return acc;
+          },
+          {} as Record<string, string>
+        );
+
+        setProfiles(profileMap);
+        setRsvps(rsvpsData);
+        setFilteredRsvps(rsvpsData);
+        setGifts(giftsData);
+        setCrew(crewData);
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(error.message);
+        } else {
+          toast.error("Failed to fetch data");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialFetch();
   }, [router]);
+
+  // No need for this effect anymore as we fetch all data initially
 
   useEffect(() => {
     if (searchTerm) {
@@ -114,17 +151,12 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [rsvps, gifts, crew, profilesData] = await Promise.all([
+      const [profilesData, rsvpsData, giftsData, crewData] = await Promise.all([
+        fetchProfiles(),
         fetchRSVPs(),
         fetchGifts(),
-        fetchCrew(),
-        fetchProfiles(),
+        fetchCrew()
       ]);
-
-      setRsvps(rsvps);
-      setFilteredRsvps(rsvps);
-      setGifts(gifts);
-      setCrew(crew);
 
       const profileMap = profilesData.reduce(
         (acc, profile: Profile) => {
@@ -133,7 +165,12 @@ export default function AdminDashboard() {
         },
         {} as Record<string, string>
       );
+
       setProfiles(profileMap);
+      setRsvps(rsvpsData);
+      setFilteredRsvps(rsvpsData);
+      setGifts(giftsData);
+      setCrew(crewData);
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -149,7 +186,8 @@ export default function AdminDashboard() {
     try {
       await deleteGift(giftId);
       toast.success("Gift deleted successfully!");
-      fetchData();
+      // Update local state instead of fetching all data
+      setGifts(prev => prev.filter(gift => gift.id !== giftId));
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -163,7 +201,8 @@ export default function AdminDashboard() {
     try {
       await deleteCrewMember(crewId);
       toast.success("Crew member deleted successfully!");
-      fetchData();
+      // Update local state instead of fetching all data
+      setCrew(prev => prev.filter(member => member.id !== crewId));
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -177,7 +216,12 @@ export default function AdminDashboard() {
     try {
       await deleteRSVP(rsvpId);
       toast.success("RSVP deleted successfully!");
-      fetchData();
+      // Update local state instead of fetching all data
+      setRsvps(prev => {
+        const newRsvps = prev.filter(rsvp => rsvp.id !== rsvpId);
+        setFilteredRsvps(newRsvps);
+        return newRsvps;
+      });
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -192,7 +236,12 @@ export default function AdminDashboard() {
       await updateRSVP(updatedRSVP);
       toast.success("RSVP updated successfully!");
       setEditRSVP(null);
-      fetchData();
+      // Update local state instead of fetching all data
+      setRsvps(prev => {
+        const newRsvps = prev.map(rsvp => rsvp.id === updatedRSVP.id ? updatedRSVP : rsvp);
+        setFilteredRsvps(newRsvps);
+        return newRsvps;
+      });
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -429,7 +478,7 @@ export default function AdminDashboard() {
                   <h3 className="font-serif text-xl font-semibold text-[#2D2D2D] mb-4">
                     Add Gift
                   </h3>
-                  <GiftForm onSubmit={fetchData} />
+                  <GiftForm onSubmit={(newGift) => setGifts(prev => [newGift, ...prev])} />
                 </div>
               </Card>
             </motion.div>
@@ -559,7 +608,7 @@ export default function AdminDashboard() {
                   <h3 className="font-serif text-xl font-semibold text-[#2D2D2D] mb-4">
                     Add Crew Member
                   </h3>
-                  <CrewForm onSubmit={fetchData} />
+                  <CrewForm onSubmit={(newCrewMember) => setCrew(prev => [newCrewMember, ...prev])} />
                 </div>
               </Card>
             </motion.div>

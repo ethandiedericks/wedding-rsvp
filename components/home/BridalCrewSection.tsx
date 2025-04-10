@@ -26,7 +26,7 @@ const ImageWithFallback = ({
   if (error || !src) {
     return (
       <div className="flex items-center justify-center w-full h-full bg-gray-100 text-center text-sm text-gray-500 px-2">
-        Image not available. Please log in to view.
+        Image not available
       </div>
     );
   }

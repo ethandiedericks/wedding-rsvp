@@ -7,10 +7,8 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
 export async function middleware(request: NextRequest) {
-  // Get the current session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // Get the current user
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   // Define public paths that don't require authentication
   const publicPaths = ["/auth/signin", "/", "/public", "/gifts"]
@@ -20,8 +18,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // If no session, redirect to sign-in page with the original URL as a parameter
-  if (!session) {
+  // If no user or error, redirect to sign-in page with the original URL as a parameter
+  if (!user || error) {
     const redirectUrl = new URL("/auth/signin", request.url)
     // Add the original path as a query parameter to redirect back after login
     redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname)
@@ -33,7 +31,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check user role for admin access
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", session.user.id).single()
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
 
   const role = profile?.role || "guest"
 

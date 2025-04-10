@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import React, { useCallback } from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ interface EditRSVPFormProps {
   onSubmit: (updatedRSVP: RSVP) => void;
 }
 
-const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
+const EditRSVPForm: React.FC<EditRSVPFormProps> = React.memo(({ rsvp, onSubmit }) => {
   const [editedRSVP, setEditedRSVP] = useState<RSVP>({ ...rsvp });
   const [isLoading, setIsLoading] = useState(false);
   const [newGuest, setNewGuest] = useState({ full_name: "", surname: "" });
@@ -26,34 +26,35 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
     onSubmit(editedRSVP); // Cast back to RSVP type
   };
 
-  const addGuest = () => {
+  const addGuest = useCallback(() => {
     if (newGuest.full_name.trim() && newGuest.surname.trim()) {
-      setEditedRSVP({
-        ...editedRSVP,
-        additional_guests: [...(editedRSVP.additional_guests || []), newGuest],
-      });
+      setEditedRSVP(prev => ({
+        ...prev,
+        additional_guests: [...(prev.additional_guests || []), newGuest],
+      }));
       setNewGuest({ full_name: "", surname: "" });
     }
-  };
+  }, [newGuest]);
 
-  const removeGuest = (index: number) => {
-    setEditedRSVP({
-      ...editedRSVP,
-      additional_guests: (editedRSVP.additional_guests || []).filter(
+  const removeGuest = useCallback((index: number) => {
+    setEditedRSVP(prev => ({
+      ...prev,
+      additional_guests: (prev.additional_guests || []).filter(
         (_, i) => i !== index
       ),
-    });
-  };
+    }));
+  }, []);
 
-  const updateGuest = (
-    index: number,
-    field: "full_name" | "surname",
-    value: string
-  ) => {
-    const updatedGuests = [...(editedRSVP.additional_guests || [])];
-    updatedGuests[index] = { ...updatedGuests[index], [field]: value };
-    setEditedRSVP({ ...editedRSVP, additional_guests: updatedGuests });
-  };
+  const updateGuest = useCallback(
+    (index: number, field: "full_name" | "surname", value: string) => {
+      setEditedRSVP(prev => {
+        const updatedGuests = [...(prev.additional_guests || [])];
+        updatedGuests[index] = { ...updatedGuests[index], [field]: value };
+        return { ...prev, additional_guests: updatedGuests };
+      });
+    },
+    []
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -227,6 +228,6 @@ const EditRSVPForm: React.FC<EditRSVPFormProps> = ({ rsvp, onSubmit }) => {
       </Button>
     </form>
   );
-};
+});
 
 export default EditRSVPForm;

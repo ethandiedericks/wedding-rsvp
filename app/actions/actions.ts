@@ -108,13 +108,22 @@ export async function deleteRSVP(rsvpId: string) {
   }
 
   // If a gift was claimed, make it available again
-  if (rsvp.gift_id) {
-    const { error: giftError } = await supabase
+  const { data: gifts, error: giftError } = await supabase
+    .from("gifts")
+    .select("id")
+    .eq("claimed_by", rsvpId);
+
+  if (giftError) {
+    throw new Error("Failed to check gift status");
+  }
+
+  if (gifts && gifts.length > 0) {
+    const { error: updateGiftError } = await supabase
       .from("gifts")
       .update({ available: true, claimed_by: null })
-      .eq("id", rsvp.gift_id);
+      .eq("claimed_by", rsvpId);
 
-    if (giftError) {
+    if (updateGiftError) {
       throw new Error("Failed to update gift status");
     }
   }
@@ -151,8 +160,9 @@ export async function updateRSVP(rsvp: any) {
 // Auth actions
 export async function getSession() {
   const supabase = await supabaseServer();
-  const { data: { session } } = await supabase.auth.getSession();
-  return session; // Can be null if not authenticated, which is expected
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return { user };
 }
 
 export async function signOut() {
@@ -212,11 +222,7 @@ export async function signUp(email: string, password: string, fullName: string) 
 export async function getUserProfile() {
   const supabase = await supabaseServer();
   
-  // First check if we have a session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
-  
-  // Then verify with getUser
+  // Authenticate the user
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return null;
 
@@ -273,7 +279,6 @@ export async function submitRSVP(formData: any) {
     attending: formData.attending,
     guest_count: formData.attending ? formData.guestCount : 0,
     additional_guests: additionalGuests,
-    dietary_restrictions: formData.dietaryRestrictions || null,
     song_request: formData.songRequest || null,
     halaal_preference: formData.halaalPreference
   });
@@ -297,14 +302,7 @@ export async function submitRSVP(formData: any) {
 export async function checkExistingRSVP() {
   const supabase = await supabaseServer();
   
-  // First check if we have a session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    // Redirect to login if no session
-    return null;
-  }
-  
-  // Then authenticate the user with getUser
+  // Authenticate the user
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
     return null;
@@ -384,16 +382,19 @@ export async function addGift(name: string, imageFile: File | null) {
     imageUrl = urlData.publicUrl;
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("gifts")
     .insert({
       name,
       available: true,
       image_url: imageUrl,
-    });
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
+  return data;
 }
 
 // Crew actions
@@ -416,17 +417,20 @@ export async function addCrewMember(name: string, role: string, headshot: File |
     headshotUrl = urlData.publicUrl;
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("bridal_crew")
     .insert({
       name,
       role,
       headshot_url: headshotUrl,
       quote: quote || null,
-    });
+    })
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
+  return data;
 }
 
 export async function getBridalCrew() {

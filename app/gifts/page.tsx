@@ -34,7 +34,13 @@ export default function GiftRegistry() {
       try {
         const data = await getAllGifts();
         setGifts(data);
-        setFilteredGifts(data);
+        // Apply initial filters
+        const filtered = data.filter(gift => {
+          if (showOnlyAvailable && !gift.available) return false;
+          if (searchTerm && !gift.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+          return true;
+        });
+        setFilteredGifts(filtered);
       } catch (error) {
         console.error("Error fetching gifts:", error);
       } finally {
@@ -45,56 +51,34 @@ export default function GiftRegistry() {
     fetchGifts();
   }, []);
 
+  // Debounced filter effect
   useEffect(() => {
-    // Apply filters
-    let result = [...gifts];
+    const timer = setTimeout(() => {
+      const filtered = gifts.filter(gift => {
+        if (showOnlyAvailable && !gift.available) return false;
+        if (searchTerm && !gift.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        return true;
+      });
+      setFilteredGifts(filtered);
+    }, 300); // 300ms debounce
 
-    // Search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter((gift) => gift.name.toLowerCase().includes(term));
-    }
-
-    // Availability filter
-    if (showOnlyAvailable) {
-      result = result.filter((gift) => gift.available);
-    }
-
-    setFilteredGifts(result);
+    return () => clearTimeout(timer);
   }, [searchTerm, showOnlyAvailable, gifts]);
 
+  // Memoize animation variants to prevent re-renders
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+    visible: { opacity: 1 }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut",
-      },
-    },
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 }
   };
 
   const headerVariants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut",
-      },
-    },
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 }
   };
 
   return (

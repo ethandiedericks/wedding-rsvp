@@ -7,7 +7,6 @@ export type FormData = {
   additional_guests: { full_name: string; surname: string }[]
 
   selectedGift: number | null
-  dietaryRestrictions: string
   songRequest: string
   halaalPreference: boolean
 }
@@ -24,7 +23,6 @@ export type RSVPRecord = {
   guest_count: number
   additional_guests: { full_name: string; surname: string }[] | null
 
-  dietary_restrictions: string | null
   song_request: string | null
   halaal_preference: boolean
   created_at: string

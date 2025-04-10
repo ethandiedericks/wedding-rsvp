@@ -48,29 +48,6 @@ export default function AdditionalInfoStep({
         </div>
 
         <div className="space-y-5">
-          <div className="space-y-2">
-            <Label
-              htmlFor="dietaryRestrictions"
-              className="text-[#2D2D2D] flex items-center"
-            >
-              <UtensilsCrossed size={16} className="mr-2 text-[#D4B56A]" />
-              Dietary Restrictions{" "}
-              <span className="text-muted-foreground font-normal ml-1">
-                (optional)
-              </span>
-            </Label>
-            <Input
-              id="dietaryRestrictions"
-              name="dietaryRestrictions"
-              value={formData.dietaryRestrictions}
-              onChange={handleChange}
-              placeholder="Vegetarian, vegan, gluten-free, allergies, etc."
-              className="border-[#D4B56A]/30 focus:border-[#D4B56A] focus-visible:ring-[#D4B56A]/20"
-            />
-            <p className="text-xs text-muted-foreground">
-              Let us know if you have any dietary requirements or allergies
-            </p>
-          </div>
 
           <div className="flex items-center space-x-2 pt-2 pb-2">
             <Checkbox 
